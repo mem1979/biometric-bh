@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 7.0.3.final using JasperReports Library version 6.0.0  -->
+<!-- 2026-04-30T19:09:14 -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="LicenciasPorSucursal" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+	<parameter name="tituloInforme" class="java.lang.String"/>
+	<parameter name="anioInforme" class="java.lang.Integer"/>
+	<parameter name="fechaGeneracion" class="java.lang.String"/>
+	<field name="sucursal" class="java.lang.String"/>
+	<field name="mesAnio" class="java.lang.String"/>
+	<field name="mesNombre" class="java.lang.String"/>
+	<field name="empleadoNombre" class="java.lang.String"/>
+	<field name="tipoLicencia" class="java.lang.String"/>
+	<field name="fechaInicio" class="java.sql.Date"/>
+	<field name="fechaFin" class="java.sql.Date"/>
+	<field name="dias" class="java.lang.Integer"/>
+	<field name="justificado" class="java.lang.String"/>
+	<field name="conGoce" class="java.lang.String"/>
+	<variable name="totalDiasMes" class="java.lang.Integer" resetType="Group" resetGroup="grupoMes" calculation="Sum">
+		<variableExpression><![CDATA[$F{dias}]]></variableExpression>
+	</variable>
+	<variable name="countLicenciasMes" class="java.lang.Integer" resetType="Group" resetGroup="grupoMes" calculation="Count">
+		<variableExpression><![CDATA[$F{empleadoNombre}]]></variableExpression>
+	</variable>
+	<variable name="totalDiasSucursal" class="java.lang.Integer" resetType="Group" resetGroup="grupoSucursal" calculation="Sum">
+		<variableExpression><![CDATA[$F{dias}]]></variableExpression>
+	</variable>
+	<variable name="countLicenciasSucursal" class="java.lang.Integer" resetType="Group" resetGroup="grupoSucursal" calculation="Count">
+		<variableExpression><![CDATA[$F{empleadoNombre}]]></variableExpression>
+	</variable>
+	<variable name="totalDiasGeneral" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[$F{dias}]]></variableExpression>
+	</variable>
+	<variable name="countLicenciasGeneral" class="java.lang.Integer" calculation="Count">
+		<variableExpression><![CDATA[$F{empleadoNombre}]]></variableExpression>
+	</variable>
+	<group name="grupoSucursal">
+		<groupExpression><![CDATA[$F{sucursal}]]></groupExpression>
+		<groupHeader>
+			<band height="30">
+				<rectangle>
+					<reportElement x="0" y="2" width="802" height="26" forecolor="#2C5F7C" backcolor="#2C5F7C" uuid="10a1b2c3-d4e5-f678-90ab-cdef01234501"/>
+				</rectangle>
+				<staticText>
+					<reportElement x="10" y="5" width="130" height="20" forecolor="#FFFFFF" uuid="10a1b2c3-d4e5-f678-90ab-cdef01234502"/>
+					<textElement verticalAlignment="Middle">
+						<font size="12" isBold="false"/>
+					</textElement>
+					<text><![CDATA[SUCURSAL/SECTOR:]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="140" y="5" width="652" height="20" forecolor="#FFFFFF" uuid="10a1b2c3-d4e5-f678-90ab-cdef01234503"/>
+					<textElement verticalAlignment="Middle">
+						<font size="12" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{sucursal}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="28">
+				<line>
+					<reportElement x="0" y="0" width="802" height="1" forecolor="#2C5F7C" uuid="10a1b2c3-d4e5-f678-90ab-cdef01234504"/>
+				</line>
+				<staticText>
+					<reportElement x="350" y="3" width="180" height="20" uuid="10a1b2c3-d4e5-f678-90ab-cdef01234505"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="10" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Total Sucursal/Sector:]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="535" y="3" width="80" height="20" uuid="10a1b2c3-d4e5-f678-90ab-cdef01234506"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="10" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{countLicenciasSucursal} + " licencia(s)"]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="620" y="3" width="80" height="20" uuid="10a1b2c3-d4e5-f678-90ab-cdef01234507"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="10" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{totalDiasSucursal} + " dia(s)"]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<group name="grupoMes">
+		<groupExpression><![CDATA[$F{mesAnio}]]></groupExpression>
+		<groupHeader>
+			<band height="40">
+				<rectangle>
+					<reportElement x="20" y="2" width="762" height="20" forecolor="#D6EAF8" backcolor="#D6EAF8" uuid="20a1b2c3-d4e5-f678-90ab-cdef01234501"/>
+				</rectangle>
+				<textField>
+					<reportElement x="30" y="3" width="300" height="18" forecolor="#1A5276" uuid="20a1b2c3-d4e5-f678-90ab-cdef01234502"/>
+					<textElement verticalAlignment="Middle">
+						<font size="10" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{mesNombre}.substring(0,1).toUpperCase() + $F{mesNombre}.substring(1)]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="30" y="24" width="200" height="14" forecolor="#555555" uuid="20a1b2c3-d4e5-f678-90ab-cdef01234503"/>
+					<textElement>
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[EMPLEADO]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="235" y="24" width="160" height="14" forecolor="#555555" uuid="20a1b2c3-d4e5-f678-90ab-cdef01234504"/>
+					<textElement>
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[TIPO DE LICENCIA]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="400" y="24" width="80" height="14" forecolor="#555555" uuid="20a1b2c3-d4e5-f678-90ab-cdef01234505"/>
+					<textElement textAlignment="Center">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[DESDE]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="485" y="24" width="80" height="14" forecolor="#555555" uuid="20a1b2c3-d4e5-f678-90ab-cdef01234506"/>
+					<textElement textAlignment="Center">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[HASTA]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="570" y="24" width="50" height="14" forecolor="#555555" uuid="20a1b2c3-d4e5-f678-90ab-cdef01234507"/>
+					<textElement textAlignment="Center">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[DIAS]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="625" y="24" width="60" height="14" forecolor="#555555" uuid="20a1b2c3-d4e5-f678-90ab-cdef01234508"/>
+					<textElement textAlignment="Center">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[JUSTIF.]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="690" y="24" width="60" height="14" forecolor="#555555" uuid="20a1b2c3-d4e5-f678-90ab-cdef01234509"/>
+					<textElement textAlignment="Center">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[CON GOCE]]></text>
+				</staticText>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="20">
+				<staticText>
+					<reportElement x="400" y="2" width="130" height="16" uuid="20a1b2c3-d4e5-f678-90ab-cdef0123450a"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<text><![CDATA[Subtotal mes:]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="535" y="2" width="80" height="16" uuid="20a1b2c3-d4e5-f678-90ab-cdef0123450b"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isItalic="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{countLicenciasMes} + " lic."]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="570" y="2" width="50" height="16" uuid="20a1b2c3-d4e5-f678-90ab-cdef0123450c"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{totalDiasMes}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<title>
+		<band height="60">
+			<rectangle>
+				<reportElement x="0" y="0" width="802" height="55" forecolor="#1A3C5E" backcolor="#1A3C5E" uuid="30a1b2c3-d4e5-f678-90ab-cdef01234501"/>
+			</rectangle>
+			<textField>
+				<reportElement x="10" y="5" width="600" height="30" forecolor="#FFFFFF" uuid="30a1b2c3-d4e5-f678-90ab-cdef01234502"/>
+				<textElement verticalAlignment="Middle">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{tituloInforme}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="10" y="35" width="300" height="15" forecolor="#B0C4DE" uuid="30a1b2c3-d4e5-f678-90ab-cdef01234503"/>
+				<textElement>
+					<font size="9" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Generado: " + $P{fechaGeneracion}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="620" y="10" width="170" height="30" forecolor="#B0C4DE" uuid="30a1b2c3-d4e5-f678-90ab-cdef01234504"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[STA.RH Biometric]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="3">
+			<line>
+				<reportElement x="0" y="1" width="802" height="1" forecolor="#CCCCCC" uuid="40a1b2c3-d4e5-f678-90ab-cdef01234501"/>
+			</line>
+		</band>
+	</pageHeader>
+	<detail>
+		<band height="16">
+			<line>
+				<reportElement x="30" y="15" width="750" height="1" forecolor="#E0E0E0" uuid="50a1b2c3-d4e5-f678-90ab-cdef01234501"/>
+			</line>
+			<textField>
+				<reportElement x="30" y="1" width="200" height="14" uuid="50a1b2c3-d4e5-f678-90ab-cdef01234502"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{empleadoNombre}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="235" y="1" width="160" height="14" uuid="50a1b2c3-d4e5-f678-90ab-cdef01234503"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tipoLicencia}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="400" y="1" width="80" height="14" uuid="50a1b2c3-d4e5-f678-90ab-cdef01234504"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fechaInicio}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="485" y="1" width="80" height="14" uuid="50a1b2c3-d4e5-f678-90ab-cdef01234505"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fechaFin}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="570" y="1" width="50" height="14" uuid="50a1b2c3-d4e5-f678-90ab-cdef01234506"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{dias}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="625" y="1" width="60" height="14" uuid="50a1b2c3-d4e5-f678-90ab-cdef01234507"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{justificado}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="690" y="1" width="60" height="14" uuid="50a1b2c3-d4e5-f678-90ab-cdef01234508"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{conGoce}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="25">
+			<line>
+				<reportElement x="0" y="0" width="802" height="1" forecolor="#CCCCCC" uuid="60a1b2c3-d4e5-f678-90ab-cdef01234501"/>
+			</line>
+			<textField>
+				<reportElement x="620" y="5" width="130" height="15" forecolor="#999999" uuid="60a1b2c3-d4e5-f678-90ab-cdef01234502"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Pagina " + $V{PAGE_NUMBER} + " de "]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="750" y="5" width="40" height="15" forecolor="#999999" uuid="60a1b2c3-d4e5-f678-90ab-cdef01234503"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="10" y="5" width="200" height="15" forecolor="#999999" uuid="60a1b2c3-d4e5-f678-90ab-cdef01234504"/>
+				<textElement>
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[STA.RH - Sistema de Recursos Humanos]]></text>
+			</staticText>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="45">
+			<rectangle>
+				<reportElement x="0" y="5" width="802" height="35" forecolor="#2C5F7C" backcolor="#E8F0FE" uuid="70a1b2c3-d4e5-f678-90ab-cdef01234501"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="30" y="10" width="250" height="25" uuid="70a1b2c3-d4e5-f678-90ab-cdef01234502"/>
+				<textElement verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOTAL GENERAL]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="400" y="10" width="200" height="25" uuid="70a1b2c3-d4e5-f678-90ab-cdef01234503"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{countLicenciasGeneral} + " licencia(s)"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="600" y="10" width="150" height="25" uuid="70a1b2c3-d4e5-f678-90ab-cdef01234504"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{totalDiasGeneral} + " dia(s) totales"]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

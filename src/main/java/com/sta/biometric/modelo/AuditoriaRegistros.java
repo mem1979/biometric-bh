@@ -1,0 +1,1809 @@
+package com.sta.biometric.modelo;
+
+import java.math.*;
+import java.time.*;
+import java.util.*;
+
+import javax.persistence.*;
+
+import org.openxava.annotations.*;
+import org.openxava.calculators.*;
+import org.openxava.jpa.*;
+import org.openxava.model.*;
+
+import com.sta.biometric.anotaciones.*;
+import com.sta.biometric.auxiliares.*;
+import com.sta.biometric.enums.*;
+import com.sta.biometric.formateadores.*;
+import com.sta.biometric.servicios.*;
+
+import lombok.*;
+
+/**
+ * ======================================================================================
+ * ENTIDAD: AuditoriaRegistros
+ * ======================================================================================
+ * Representa el registro consolidado de asistencia de un empleado para un día
+ * específico.
+ * 
+ * OBJETIVO:
+ * - Centralizar toda la información de la jornada laboral (fichadas, turno,
+ * resultados).
+ * - Persistir datos históricos para que no cambien si la configuración del
+ * empleado cambia.
+ * - Permitir ajustes manuales y recálculo de horas.
+ * 
+ * FUNCIONAMIENTO:
+ * - Se genera/actualiza mediante la acción de "Consolidar" o al importar
+ * fichadas.
+ * - Calcula automáticamente horas trabajadas, extras y estado (Presente, Tarde,
+ * Ausente).
+ * - Guarda una "foto" (snapshot) de los valores monetarios del momento.
+ */
+@Entity
+@Table(name = "AuditoriaRegistros", indexes = {
+        @Index(name = "idx_auditoria_fecha", columnList = "fecha"),
+        @Index(name = "idx_auditoria_empleado", columnList = "empleado_id")
+})
+@Getter
+@Setter
+@View(members = "empleado;" +
+        "DetalleTurno { " +
+        "turnoPlanificado, evaluacion; observacionFeriado; " +
+        "registros;" +
+        "Calculos_Y_Ajustes  [filasCalculo];" +
+        "AuditoriaRegistros.redondeoIndividual(ALWAYS), estadoJornada; };" +
+        "OBSERVACIONES {" +
+        "nota;" +
+        "}")
+
+@Tab(editors = "List", properties = "empleado.nombreCompleto, diaSemana, fecha, horario, evaluacion, estadoJornada, empleado.sucursal.nombre", defaultOrder = "${fecha} desc, ${empleado.sucursal.nombre} asc, ${empleado.nombreCompleto} asc", rowStyles = {
+        @RowStyle(style = "estilo-gris-claro", property = "evaluacion", value = "PENDIENTE"),
+        @RowStyle(style = "estilo-gris-intenso", property = "evaluacion", value = "EN_CURSO"),
+        @RowStyle(style = "estilo-verde-intenso", property = "evaluacion", value = "COMPLETA"),
+        @RowStyle(style = "estilo-amarillo-claro", property = "evaluacion", value = "INCOMPLETA"),
+        @RowStyle(style = "estilo-rojo-intenso", property = "evaluacion", value = "AUSENTE"),
+        @RowStyle(style = "estilo-naranja-intenso", property = "evaluacion", value = "SIN_ENTRADA"),
+        @RowStyle(style = "estilo-naranja-intenso", property = "evaluacion", value = "SIN_SALIDA"),
+        @RowStyle(style = "estilo-rojo-claro", property = "evaluacion", value = "LICENCIA"),
+        @RowStyle(style = "estilo-naranja-claro", property = "evaluacion", value = "LICENCIA_SIN_GOCE"),
+        @RowStyle(style = "estilo-rojo-intenso", property = "evaluacion", value = "LICENCIA_NO_JUSTIFICADA"),
+        @RowStyle(style = "estilo-amarillo-claro", property = "evaluacion", value = "LICENCIA_PARCIAL"),
+        @RowStyle(style = "estilo-azul-claro", property = "evaluacion", value = "FERIADO"),
+        @RowStyle(style = "estilo-azul-intenso", property = "evaluacion", value = "FERIADO_TRABAJADO"),
+        @RowStyle(style = "estilo-verde-claro", property = "evaluacion", value = "DIA_NO_LABORAL"),
+        @RowStyle(style = "estilo-azul-intenso", property = "evaluacion", value = "DIA_NO_LABORAL_TRABAJADO"),
+        @RowStyle(style = "estilo-verde-claro", property = "evaluacion", value = "SIN_TURNO_ASIGNADO"),
+        @RowStyle(style = "estilo-rojo-intenso", property = "evaluacion", value = "SIN_DATOS")
+})
+public class AuditoriaRegistros extends Identifiable {
+
+    // ==================================================================================
+    // 1. IDENTIFICACIÓN DEL REGISTRO
+    // ==================================================================================
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @ReferenceView("simple")
+    @NoFrame
+    @ReadOnly
+    private Personal empleado; // Empleado al que pertenece este registro
+
+    @Stereotype("FECHA")
+    private LocalDate fecha; // Fecha de la jornada (clave lógica junto con empleado)
+
+    // ==================================================================================
+    // 2. CONFIGURACIÓN DEL TURNO (PERSISTENCIA HISTÓRICA)
+    // ==================================================================================
+    // Estos campos guardan la configuración del turno COMO ERA en el momento del
+    // registro.
+    // Esto evita que cambios futuros en el turno afecten registros pasados.
+
+    @ReadOnly
+    @Enumerated(EnumType.STRING)
+    private Turnos nombreTurno; // Nombre del turno persistido
+
+    @Stereotype("HORA")
+    private LocalTime horaEsperadaEntrada; // Hora de entrada planificada
+
+    @Stereotype("HORA")
+    private LocalTime horaEsperadaSalida; // Hora de salida planificada
+
+    private int minutosEsperados; // Duración total esperada en minutos
+
+    @ReadOnly
+    private int toleranciaMinutos; // Tolerancia del turno en minutos (snapshot)
+
+    @Transient
+    private String notaToleranciaAutomatica; // Info temporal de tolerancia aplicada
+
+    @Column(scale = 2)
+    @ReadOnly
+    private BigDecimal porcentajeBonificacionSnapshot; // % de bonificación del turno (0-100)
+
+    @Column(scale = 2)
+    @ReadOnly
+    private BigDecimal valorHoraTurnoSnapshot; // Valor hora con bonificación aplicada
+
+    // ==================================================================================
+    // 3. RESULTADOS DEL PROCESAMIENTO (FICHADAS Y CÁLCULOS)
+    // ==================================================================================
+
+    @EditOnly
+    @NoDefaultActions
+    @RowStyle(style = "estilo-verde-claro", property = "evaluacion", value = "ENTRADA EN HORARIO")
+    @RowStyle(style = "estilo-verde-claro", property = "evaluacion", value = "SALIDA EN HORARIO")
+    @RowStyle(style = "estilo-verde-intenso", property = "evaluacion", value = "ENTRADA ANTICIPADA")
+    @RowStyle(style = "estilo-amarillo-intenso", property = "evaluacion", value = "SALIDA ANTICIPADA")
+    @RowStyle(style = "estilo-amarillo-intenso", property = "evaluacion", value = "ENTRADA TARDE")
+    @RowStyle(style = "estilo-verde-intenso", property = "evaluacion", value = "SALIDA TARDIA")
+    @RowStyle(style = "estilo-rojo-claro", property = "evaluacion", value = "SIN HORARIO DE ENTRADA")
+    @RowStyle(style = "estilo-rojo-claro", property = "evaluacion", value = "SIN HORARIO DE SALIDA")
+    @RowStyle(style = "estilo-rojo-claro", property = "evaluacion", value = "DIA NO LABORAL")
+    @RowStyle(style = "estilo-rojo-claro", property = "evaluacion", value = "SIN TURNO ASIGNADO")
+    @RowStyle(style = "estilo-azul-claro", property = "evaluacion", value = "INICIO PAUSA")
+    @RowStyle(style = "estilo-azul-claro", property = "evaluacion", value = "FIN PAUSA")
+    @RowStyle(style = "estilo-azul-claro", property = "evaluacion", value = "UBICACION")
+    @RowStyle(style = "estilo-azul-intenso", property = "evaluacion", value = "REGISTRO MANUAL")
+    @RowStyle(style = "estilo-rojo-intenso", property = "evaluacion", value = "ERROR DE REGISTRO - SIN ASISTENCIA DIARIA")
+    @RowStyle(style = "estilo-rojo-intenso", property = "evaluacion", value = "ERROR DE REGISTRO - SIN DATOS")
+    @RowStyle(style = "estilo-rojo-intenso", property = "evaluacion", value = "ERROR DE REGISTRO - SIN EMPLEADO")
+    @RowStyle(style = "estilo-rojo-intenso", property = "evaluacion", value = "REGISTRO NO VALIDADO - TIPO DE MOVIMIENTO INCORRECTO")
+    @OneToMany(mappedBy = "asistenciaDiaria", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ListProperties("tipoMovimiento,diaSemana, fecha, hora, evaluacion")
+    @org.hibernate.annotations.BatchSize(size = 50)
+    private List<ColeccionRegistros> registros = new ArrayList<>(); // Lista de fichadas crudas
+
+    private int minutosTrabajados; // Total de minutos trabajados reales
+    private int minutosExtras; // Total de minutos extras calculados
+
+    @Stereotype("BOLD_LABEL")
+    @LabelFormat(LabelFormatType.NO_LABEL)
+    private EvaluacionJornada evaluacion; // Estado final (COMPLETA, AUSENTE, etc.)
+
+    // ==================================================================================
+    // 4. BANDERAS DE ESTADO (CONDICIONES ESPECIALES)
+    // ==================================================================================
+
+    @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
+    @DefaultValueCalculator(TrueCalculator.class)
+    private boolean justificado; // Indica si una ausencia/llegada tarde está justificada
+
+    private boolean feriado; // Indica si la fecha cae en un feriado persistido
+
+    private boolean licencia; // Indica si el empleado tiene licencia activa persistida
+
+    /**
+     * Minutos imputados por licencia con goce de sueldo.
+     * Cuando la licencia tiene goce, se imputan los minutos esperados del turno.
+     * Esto permite que el empleado reciba el pago correspondiente sin necesidad de
+     * fichaje.
+     */
+    @Column(columnDefinition = "INTEGER DEFAULT 0")
+    @Hidden
+    private int minutosImputadosLicencia = 0;
+
+    /**
+     * Indica si la licencia activa es parcial (tiene rango horario).
+     * Cuando es true, las horas de la licencia se suman a las fichadas.
+     */
+    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Hidden
+    private boolean licenciaParcial = false;
+
+    private boolean esJornadaNocturna; // Indica si el turno cruza medianoche (ej: 22:00-06:00)
+
+    // ==================================================================================
+    // 5. VALORES MONETARIOS (SNAPSHOTS)
+    // ==================================================================================
+    // Guardamos el valor monetario calculado para no depender del valor hora actual
+    // del empleado.
+
+    @Column(scale = 2)
+    @ReadOnly
+    private BigDecimal valorHoraSnapshot; // Valor hora del empleado en ese momento
+
+    @Column(scale = 2)
+    @ReadOnly
+    private BigDecimal montoTeoricoTurno; // $ Calculado por horas normales
+
+    @Column(scale = 2)
+    @ReadOnly
+    private BigDecimal montoTeoricoExtras; // $ Calculado por horas extras
+
+    @Column(scale = 2)
+    @ReadOnly
+    private BigDecimal montoTeoricoEspeciales; // $ Calculado por horas especiales (feriados)
+
+    // ==================================================================================
+    // 6. AJUSTES MANUALES
+    // ==================================================================================
+    // Permite al supervisor corregir horas sin alterar las fichadas originales.
+
+    @Column(columnDefinition = "INTEGER DEFAULT 0")
+    @Hidden
+    private int ajusteMinutosNormales; // Minutos a sumar/restar a normales (MANUAL)
+
+    @Column(columnDefinition = "INTEGER DEFAULT 0")
+    @Hidden
+    private int ajusteMinutosExtras; // Minutos a sumar/restar a extras (MANUAL)
+
+    @Column(columnDefinition = "INTEGER DEFAULT 0")
+    @Hidden
+    private int ajusteMinutosEspeciales; // Minutos a sumar/restar a especiales (MANUAL)
+
+    // ==================================================================================
+    // 6.1. AJUSTES DE REDONDEO AUTOMÁTICO
+    // ==================================================================================
+    // Separados de los ajustes manuales para poder revertir sin afectar ajustes
+    // manuales.
+
+    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Hidden
+    private boolean redondeoAutoAplicado = false; // Indica si se aplicó redondeo automático
+
+    @Column(columnDefinition = "INTEGER DEFAULT 0")
+    @Hidden
+    private int ajusteRedondeoNormales = 0; // Ajuste de redondeo auto para normales
+
+    @Column(columnDefinition = "INTEGER DEFAULT 0")
+    @Hidden
+    private int ajusteRedondeoExtras = 0; // Ajuste de redondeo auto para extras
+
+    @Column(columnDefinition = "INTEGER DEFAULT 0")
+    @Hidden
+    private int ajusteRedondeoEspeciales = 0; // Ajuste de redondeo auto para especiales
+
+    @Stereotype("MEMO")
+    @Column(length = 2000)
+    private String nota; // Observaciones generales
+
+    // ==================================================================================
+    // 7. CONTEXTO PARA RECALCULO
+    // ==================================================================================
+    // Estas variables permiten inyectar una Licencia específica durante el recalculo para
+    // considerarla en memoria aunque no esté aún en base de datos, o para ignorarla
+    // si está en proceso de eliminación.
+    
+    @Transient
+    private Licencia contextoLicencia = null;
+
+    @Transient
+    private boolean contextoEsEliminacion = false;
+
+    public void aplicarContextoLicencia(Licencia licencia, boolean esEliminacion) {
+        this.contextoLicencia = licencia;
+        this.contextoEsEliminacion = esEliminacion;
+    }
+
+    public void limpiarContextoLicencia() {
+        this.contextoLicencia = null;
+        this.contextoEsEliminacion = false;
+    }
+
+    private boolean verificarLicenciaContexto() {
+        if (contextoLicencia != null && fecha != null && 
+            contextoLicencia.getFechaInicio() != null && contextoLicencia.getFechaFin() != null) {
+            return (fecha.isEqual(contextoLicencia.getFechaInicio()) || fecha.isAfter(contextoLicencia.getFechaInicio())) &&
+                   (fecha.isEqual(contextoLicencia.getFechaFin()) || fecha.isBefore(contextoLicencia.getFechaFin()));
+        }
+        return false;
+    }
+
+    // ==================================================================================
+    // LÓGICA PRINCIPAL DE NEGOCIO
+    // ==================================================================================
+
+    /**
+     * Método central que procesa la información y determina el estado de la
+     * jornada.
+     * 
+     * <p>
+     * Se ejecuta cada vez que se agregan fichadas o se recalcula el registro.
+     * Realiza las siguientes operaciones:
+     * </p>
+     * <ol>
+     * <li>Inicializa turno y condiciones</li>
+     * <li>Calcula duraciones (minutos trabajados)</li>
+     * <li>Evalúa el estado de la jornada</li>
+     * <li>Actualiza notas según evaluación</li>
+     * </ol>
+     * 
+     * @see #inicializarTurnoYCondiciones()
+     * @see #calcularDuraciones()
+     */
+    public void consolidarDesdeRegistros() {
+        if (empleado == null || fecha == null)
+            return;
+
+        // 1. Obtener y persistir configuración del turno
+        inicializarTurnoYCondiciones();
+
+        // 2. Verificar condiciones especiales (Feriados, Licencias)
+        feriado = Feriados.existeParaFecha(fecha);
+        
+        if (contextoLicencia != null && verificarLicenciaContexto()) {
+             licencia = !contextoEsEliminacion;
+        } else {
+             licencia = Licencia.tieneLicenciaEnFecha(empleado, fecha);
+        }
+
+        // 2.1 Calcular imputación de horas por licencia con goce de sueldo
+        calcularImputacionLicencia();
+
+        // 3. Calcular tiempos según fichadas
+        if (registros == null || registros.isEmpty()) {
+            evaluarSinRegistros();
+        } else {
+            calcularDuraciones();
+            evaluarConRegistros();
+        }
+
+        // 4. Calcular y persistir valores monetarios (Snapshot)
+        if (empleado != null) {
+            this.valorHoraSnapshot = empleado.getValorHora();
+
+            // Calculamos montos usando el valor hora con bonificación del turno
+            BigDecimal valorHoraTurno = valorHoraTurnoSnapshot != null ? valorHoraTurnoSnapshot
+                    : empleado.getValorHora();
+
+            this.montoTeoricoTurno = calcularTotalMonetario(getHorasTrabajadasTurno(), valorHoraTurno);
+            this.montoTeoricoExtras = calcularTotalMonetario(getHorasExtras(), empleado.getValorHoraExtra());
+            this.montoTeoricoEspeciales = calcularTotalMonetario(getHorasEspeciales(), empleado.getValorHoraEspecial());
+        }
+
+        // 5. Actualizar nota automática
+        actualizarNotaSegunEvaluacion();
+
+        // 6. Agregar nota de tolerancia automática si corresponde
+        if (notaToleranciaAutomatica != null && !notaToleranciaAutomatica.isEmpty()) {
+            String notaActual = getNota();
+            if (notaActual != null) {
+                setNota(notaActual + notaToleranciaAutomatica);
+            }
+            notaToleranciaAutomatica = null; // Limpiar para próxima consolidación
+        }
+    }
+
+    /**
+     * Busca el turno correspondiente y guarda sus parámetros en este registro.
+     * 
+     * <p>
+     * Asegura la inmutabilidad histórica guardando una "foto" de los valores
+     * al momento del registro (valor hora, tolerancia, bonificaciones).
+     * </p>
+     * 
+     * @see Personal#getTurnoParaFecha(LocalDate)
+     */
+    public void inicializarTurnoYCondiciones() {
+        TurnosHorarios turno = empleado.getTurnoParaFecha(fecha);
+        DayOfWeek dia = fecha.getDayOfWeek();
+
+        if (turno != null) {
+            horaEsperadaEntrada = turno.getEntradaParaDia(dia);
+            horaEsperadaSalida = turno.getSalidaParaDia(dia);
+            minutosEsperados = TiempoUtils.calcularMinutosLocalTime(horaEsperadaEntrada, horaEsperadaSalida);
+            // Guardamos nombre y código LIMPIOS para referencia futura
+            this.nombreTurno = turno.getTurnoNombre();
+            // Guardamos tolerancia (snapshot)
+            this.toleranciaMinutos = turno.getTolerancia() != null ? turno.getTolerancia() : 0;
+
+            // Guardamos bonificación del turno (snapshot)
+            this.porcentajeBonificacionSnapshot = turno.getPorcentajeBonificacion() != null
+                    ? turno.getPorcentajeBonificacion()
+                    : BigDecimal.ZERO;
+
+            // Calculamos y guardamos valor hora con bonificación
+            if (empleado != null) {
+                this.valorHoraTurnoSnapshot = empleado.getValorHoraTurno(turno);
+            }
+
+            // Detectar si es jornada nocturna (cruza medianoche)
+            this.esJornadaNocturna = turno.esNocturnoParaDia(dia);
+        } else {
+            horaEsperadaEntrada = null;
+            horaEsperadaSalida = null;
+            minutosEsperados = 0;
+            this.nombreTurno = null;
+            this.toleranciaMinutos = 0;
+
+            // Valores por defecto si no hay turno
+            this.porcentajeBonificacionSnapshot = BigDecimal.ZERO;
+            this.valorHoraTurnoSnapshot = empleado != null ? empleado.getValorHora() : null;
+            this.esJornadaNocturna = false;
+        }
+    }
+
+    /**
+     * Calcula minutos trabajados basándose en la primera entrada y última salida.
+     * 
+     * <p>
+     * Descuenta pausas si están registradas.
+     * </p>
+     * <p>
+     * IMPORTANTE: Ordena por FECHA + HORA para soportar turnos nocturnos
+     * correctamente.
+     * Sin esto, una salida a las 00:22 quedaría antes de una entrada a las 17:50.
+     * </p>
+     * <p>
+     * <b>TOLERANCIA AUTOMÁTICA:</b> Si la diferencia entre minutos trabajados y
+     * esperados está dentro de la tolerancia del turno, se ajusta automáticamente
+     * a la jornada exacta para evitar generar horas extras o descuentos por
+     * demoras/salidas anticipadas involuntarias.
+     * </p>
+     */
+    private void calcularDuraciones() {
+        // Ordenar por fecha Y hora para manejar correctamente turnos nocturnos
+        // (la salida del día siguiente debe quedar DESPUÉS de la entrada del día
+        // anterior)
+        registros.sort(Comparator
+                .comparing(ColeccionRegistros::getFecha, Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(ColeccionRegistros::getHora, Comparator.nullsFirst(Comparator.naturalOrder())));
+
+        LocalTime inicio = registros.get(0).getHora();
+        LocalTime fin = registros.get(registros.size() - 1).getHora();
+
+        minutosTrabajados = TiempoUtils.calcularMinutosLocalTime(inicio, fin);
+
+        // ==================================================================================
+        // TOLERANCIA AUTOMÁTICA: Zona de tolerancia bidireccional
+        // ==================================================================================
+        // Si la diferencia está dentro de la tolerancia, ajustar a jornada exacta
+        // para evitar generar extras/descuentos por demoras mínimas involuntarias.
+        //
+        // Ejemplo con tolerancia de 5 minutos:
+        // - Trabajó 483 min (8:03), esperados 480 min (8:00) → diferencia +3 min
+        // - Como |3| <= 5, se ajusta a 480 min → NO se generan 3 min de extras
+        // - Trabajó 477 min (7:57), esperados 480 min (8:00) → diferencia -3 min
+        // - Como |3| <= 5, se ajusta a 480 min → NO se descuentan 3 min
+        //
+        // Configurable via properties: tolerancia.automatica.habilitada y .modo
+        // ==================================================================================
+
+        int diferenciaReal = minutosTrabajados - minutosEsperados;
+
+        // Verificar si la tolerancia automática está habilitada (default: true)
+        boolean toleranciaHabilitada = ConfiguracionesPreferencias.obtenerValor(
+                "tolerancia.automatica.habilitada", true, Boolean.class);
+
+        if (toleranciaHabilitada && toleranciaMinutos > 0 && !esJornadaEspecial()) {
+            // Obtener modo de aplicación (default: BIDIRECCIONAL)
+            String modo = ConfiguracionesPreferencias.obtenerValor(
+                    "tolerancia.automatica.modo", "BIDIRECCIONAL", String.class);
+
+            boolean aplicarTolerancia = false;
+
+            switch (modo) {
+                case "BIDIRECCIONAL":
+                    // Aplicar tanto a excesos como a faltantes
+                    aplicarTolerancia = Math.abs(diferenciaReal) <= toleranciaMinutos;
+                    break;
+
+                case "SOLO_EXCESOS":
+                    // Solo aplicar si es un exceso pequeño (evita extras, no compensa faltantes)
+                    aplicarTolerancia = diferenciaReal > 0 && diferenciaReal <= toleranciaMinutos;
+                    break;
+
+                case "SOLO_FALTANTES":
+                    // Solo aplicar si es un faltante pequeño (evita descuentos, no elimina extras)
+                    aplicarTolerancia = diferenciaReal < 0 && Math.abs(diferenciaReal) <= toleranciaMinutos;
+                    break;
+            }
+
+            if (aplicarTolerancia) {
+                // Ajustar a jornada exacta
+                minutosTrabajados = minutosEsperados;
+
+                // Guardar info de tolerancia para agregar a la nota posteriormente
+                // (la nota se genera en actualizarNotaSegunEvaluacion())
+                boolean registrarNota = ConfiguracionesPreferencias.obtenerValor(
+                        "tolerancia.automatica.registrar.nota", true, Boolean.class);
+
+                if (registrarNota) {
+                    String signo = diferenciaReal >= 0 ? "+" : "";
+                    this.notaToleranciaAutomatica = String.format(
+                            " [Tolerancia automática: %s%d min → ajustado a jornada completa]",
+                            signo, diferenciaReal);
+                }
+            }
+        }
+
+        // Calcular horas extras (ya considerando el ajuste de tolerancia si aplicó)
+        minutosExtras = Math.max(0, minutosTrabajados - minutosEsperados);
+    }
+
+    /**
+     * Evalúa la jornada cuando no hay fichadas registradas.
+     * 
+     * <p>
+     * Determina si es:
+     * </p>
+     * <ul>
+     * <li>FERIADO - si la fecha es feriado nacional</li>
+     * <li>LICENCIA - si hay licencia activa</li>
+     * <li>AUSENTE - si era día laboral sin registros</li>
+     * <li>DIA_LIBRE - si no era día laboral</li>
+     * </ul>
+     * 
+     * @see EvaluacionJornada
+     */
+    private void evaluarSinRegistros() {
+        TurnosHorarios turno = empleado.getTurnoParaFecha(fecha);
+        boolean esLaboral = turno != null && turno.esLaboral(fecha.getDayOfWeek());
+
+        if (licencia) {
+            // Diferenciar según tipo de licencia
+            Licencia licenciaDetalle = null;
+            if (contextoLicencia != null && !contextoEsEliminacion && verificarLicenciaContexto()) {
+                 licenciaDetalle = contextoLicencia;
+            } else {
+                 licenciaDetalle = Licencia.getLicenciaEnFecha(empleado, fecha);
+            }
+            if (licenciaDetalle != null) {
+                if (!licenciaDetalle.isJustificado()) {
+                    evaluacion = EvaluacionJornada.LICENCIA_NO_JUSTIFICADA;
+                } else if (!licenciaDetalle.isConGoce()) {
+                    evaluacion = EvaluacionJornada.LICENCIA_SIN_GOCE;
+                } else {
+                    evaluacion = EvaluacionJornada.LICENCIA;
+                }
+            } else {
+                evaluacion = EvaluacionJornada.LICENCIA;
+            }
+        } else if (feriado) {
+            // Verificar si es feriado PUENTE y el turno ESPECIAL obliga a trabajar
+            if (debeTrabajarFeriadoPuente()) {
+                // Tratar como día laboral normal → AUSENTE (no fichó) o PENDIENTE
+                if (jornadaDeberiaHaberTerminado()) {
+                    evaluacion = EvaluacionJornada.AUSENTE;
+                } else {
+                    evaluacion = EvaluacionJornada.PENDIENTE;
+                }
+            } else {
+                evaluacion = EvaluacionJornada.FERIADO;
+            }
+        } else if (!esLaboral) {
+            evaluacion = EvaluacionJornada.DIA_NO_LABORAL;
+        } else {
+            // Usar lógica que considera turnos nocturnos y hora actual
+            if (jornadaDeberiaHaberTerminado()) {
+                evaluacion = EvaluacionJornada.AUSENTE;
+            } else {
+                evaluacion = EvaluacionJornada.PENDIENTE;
+            }
+        }
+    }
+
+    /**
+     * Determina si la jornada ya debería haber terminado.
+     * 
+     * <p>
+     * LÓGICA:
+     * </p>
+     * <ul>
+     * <li>Turno normal: día pasado O (es hoy Y hora > salida + 30min)</li>
+     * <li>Turno nocturno: estamos en día siguiente+ Y hora > salida + 30min</li>
+     * </ul>
+     * 
+     * @return true si la jornada debería haber terminado
+     */
+    private boolean jornadaDeberiaHaberTerminado() {
+        LocalDate hoy = LocalDate.now();
+        LocalTime ahora = LocalTime.now();
+
+        // Día futuro → no terminó
+        if (fecha.isAfter(hoy)) {
+            return false;
+        }
+
+        // ========== TURNO NOCTURNO ==========
+        if (esJornadaNocturna) {
+            LocalDate diaSiguiente = fecha.plusDays(1);
+
+            if (hoy.isBefore(diaSiguiente)) {
+                // Aún estamos en el día que comenzó el turno
+                return false;
+            }
+
+            if (hoy.isAfter(diaSiguiente)) {
+                // Ya pasaron 2+ días
+                return true;
+            }
+
+            // Estamos en el día siguiente - verificar hora
+            LocalTime limite = (horaEsperadaSalida != null)
+                    ? horaEsperadaSalida.plusMinutes(30)
+                    : LocalTime.of(10, 0);
+            return ahora.isAfter(limite);
+        }
+
+        // ========== TURNO NORMAL ==========
+        if (fecha.isBefore(hoy)) {
+            return true; // Día pasado
+        }
+
+        // Es hoy - verificar hora de salida
+        LocalTime limite = (horaEsperadaSalida != null)
+                ? horaEsperadaSalida.plusMinutes(30)
+                : LocalTime.of(23, 0);
+        return ahora.isAfter(limite);
+    }
+
+    /**
+     * Calcula los minutos a imputar por licencia con goce de sueldo.
+     * 
+     * <p>
+     * Cuando existe una licencia con goce activa para la fecha, este método
+     * asigna los minutos correspondientes según el tipo de licencia:
+     * - Licencia total: imputa todos los minutos del turno
+     * - Licencia parcial: imputa solo el rango horario especificado
+     * </p>
+     * 
+     * @see #minutosImputadosLicencia
+     * @see #licenciaParcial
+     */
+    private void calcularImputacionLicencia() {
+        // Resetear valores
+        this.minutosImputadosLicencia = 0;
+        this.licenciaParcial = false;
+
+        if (!licencia) {
+            return;
+        }
+
+        // Verificar si la imputación está habilitada en configuración
+        boolean imputacionHabilitada = ConfiguracionesPreferencias.obtenerValor(
+                "licencia.imputar.horas.goce", true, Boolean.class);
+
+        if (!imputacionHabilitada) {
+            return;
+        }
+
+        // Obtener detalles de la licencia
+        Licencia licenciaDetalle = null;
+        if (contextoLicencia != null && !contextoEsEliminacion && verificarLicenciaContexto()) {
+             licenciaDetalle = contextoLicencia;
+        } else {
+             licenciaDetalle = Licencia.getLicenciaEnFecha(empleado, fecha);
+        }
+
+        if (licenciaDetalle == null) {
+            return;
+        }
+
+        // Solo imputar si la licencia tiene goce de sueldo
+        if (licenciaDetalle.isConGoce()) {
+            if (licenciaDetalle.isParcial()) {
+                // Licencia parcial: imputar solo el rango especificado
+                this.minutosImputadosLicencia = licenciaDetalle.getMinutosLicencia(minutosEsperados);
+                this.licenciaParcial = true;
+            } else {
+                // Licencia total: imputar jornada completa
+                this.minutosImputadosLicencia = minutosEsperados;
+            }
+            this.justificado = true;
+        } else {
+            // Licencia sin goce - solo justifica pero no imputa horas
+            this.justificado = licenciaDetalle.isJustificado();
+        }
+    }
+
+    /**
+     * Evalúa la jornada cuando hay fichadas registradas.
+     * 
+     * <p>
+     * Determina:
+     * </p>
+     * <ul>
+     * <li>COMPLETA - si cumplió las horas del turno</li>
+     * <li>INCOMPLETA - si trabajó pero no completó las horas</li>
+     * <li>FERIADO_TRABAJADO - si trabajó en un día feriado</li>
+     * </ul>
+     * 
+     * @see EvaluacionJornada
+     */
+    private void evaluarConRegistros() {
+        TurnosHorarios turno = empleado.getTurnoParaFecha(fecha);
+        boolean esLaboral = turno != null && turno.esLaboral(fecha.getDayOfWeek());
+
+        // Verificar si tiene entrada pero no salida
+        boolean tieneEntrada = registros.stream()
+                .anyMatch(r -> r.getTipoMovimiento() == TipoMovimiento.ENTRADA);
+        boolean tieneSalida = registros.stream()
+                .anyMatch(r -> r.getTipoMovimiento() == TipoMovimiento.SALIDA);
+
+        boolean esHoy = fecha.equals(LocalDate.now());
+        boolean esJornadaPasada = fecha.isBefore(LocalDate.now());
+
+        if (licencia) {
+            // Licencia parcial con fichajes: combinar horas
+            if (licenciaParcial) {
+                evaluacion = EvaluacionJornada.LICENCIA_PARCIAL;
+            } else {
+                // Licencia total: diferenciar según tipo
+                Licencia licenciaDetalle = null;
+                if (contextoLicencia != null && !contextoEsEliminacion && verificarLicenciaContexto()) {
+                     licenciaDetalle = contextoLicencia;
+                } else {
+                     licenciaDetalle = Licencia.getLicenciaEnFecha(empleado, fecha);
+                }
+                if (licenciaDetalle != null) {
+                    if (!licenciaDetalle.isJustificado()) {
+                        evaluacion = EvaluacionJornada.LICENCIA_NO_JUSTIFICADA;
+                    } else if (!licenciaDetalle.isConGoce()) {
+                        evaluacion = EvaluacionJornada.LICENCIA_SIN_GOCE;
+                    } else {
+                        evaluacion = EvaluacionJornada.LICENCIA;
+                    }
+                } else {
+                    evaluacion = EvaluacionJornada.LICENCIA;
+                }
+            }
+        } else if (feriado) {
+            if (debeTrabajarFeriadoPuente()) {
+                // Es jornada obligatoria por turno ESPECIAL → evaluar como día laboral normal
+                if (minutosTrabajados >= (minutosEsperados - toleranciaMinutos)) {
+                    evaluacion = EvaluacionJornada.COMPLETA;
+                } else {
+                    evaluacion = EvaluacionJornada.INCOMPLETA;
+                }
+            } else {
+                evaluacion = EvaluacionJornada.FERIADO_TRABAJADO;
+            }
+        } else if (!esLaboral) {
+            evaluacion = EvaluacionJornada.DIA_NO_LABORAL_TRABAJADO;
+        }
+        // === DETECCIÓN DE FICHADAS FALTANTES ===
+        else if (!tieneEntrada && tieneSalida && esJornadaPasada) {
+            // Solo tiene salida pero no entrada - día pasado
+            evaluacion = EvaluacionJornada.SIN_ENTRADA;
+        } else if (tieneEntrada && !tieneSalida && esJornadaPasada && !esJornadaNocturna) {
+            // Solo tiene entrada pero no salida - día pasado (no nocturna)
+            evaluacion = EvaluacionJornada.SIN_SALIDA;
+        } else if (tieneEntrada && !tieneSalida && esHoy) {
+            // Hoy con solo entrada - en curso
+            evaluacion = EvaluacionJornada.EN_CURSO;
+        }
+        // === FIN DETECCIÓN ===
+        else if (minutosTrabajados >= (minutosEsperados - toleranciaMinutos)) {
+            evaluacion = EvaluacionJornada.COMPLETA;
+        } else {
+            evaluacion = EvaluacionJornada.INCOMPLETA;
+        }
+    }
+
+    /**
+     * Genera notas automáticas basadas en la evaluación de la jornada.
+     * 
+     * <p>
+     * Proporciona información detallada según el estado: horarios, tiempos
+     * trabajados, diferencias, motivos de licencia/feriado, etc.
+     * </p>
+     */
+    public void actualizarNotaSegunEvaluacion() {
+        if (evaluacion == null) {
+            setNota("Sin evaluación disponible.");
+            return;
+        }
+
+        switch (evaluacion) {
+            case LICENCIA:
+                generarNotaLicencia();
+                break;
+
+            case FERIADO:
+                generarNotaFeriado();
+                break;
+
+            case FERIADO_TRABAJADO:
+                generarNotaFeriadoTrabajado();
+                break;
+
+            case DIA_NO_LABORAL:
+                generarNotaDiaNoLaboral();
+                break;
+
+            case DIA_NO_LABORAL_TRABAJADO:
+                generarNotaDiaNoLaboralTrabajado();
+                break;
+
+            case PENDIENTE:
+                generarNotaPendiente();
+                break;
+
+            case EN_CURSO:
+                generarNotaEnCurso();
+                break;
+
+            case COMPLETA:
+                generarNotaCompleta();
+                break;
+
+            case INCOMPLETA:
+                generarNotaIncompleta();
+                break;
+
+            case AUSENTE:
+                generarNotaAusente();
+                break;
+
+            case SIN_ENTRADA:
+                generarNotaSinEntrada();
+                break;
+
+            case SIN_SALIDA:
+                generarNotaSinSalida();
+                break;
+
+            case SIN_TURNO_ASIGNADO:
+                setNota("El empleado no tiene un turno asignado para esta fecha.");
+                break;
+
+            case SIN_DATOS:
+                setNota("No hay datos de asistencia registrados para procesar.");
+                break;
+
+            default:
+                setNota("Estado: " + evaluacion.getDescripcion());
+        }
+    }
+
+    // ==================================================================================
+    // GENERADORES DE NOTAS DETALLADAS POR ESTADO
+    // ==================================================================================
+
+    private void generarNotaLicencia() {
+        Licencia licenciaDetalle = null;
+        if (contextoLicencia != null && !contextoEsEliminacion && verificarLicenciaContexto()) {
+             licenciaDetalle = contextoLicencia;
+        } else {
+             licenciaDetalle = Licencia.getLicenciaEnFecha(empleado, fecha);
+        }
+        if (licenciaDetalle != null) {
+            String tipoDesc = licenciaDetalle.getTipo() != null
+                    ? licenciaDetalle.getTipo().getDescripcion()
+                    : "No especificado";
+
+            // Mostrar estado de goce/justificación
+            String estadoStr;
+            if (licenciaDetalle.isConGoce()) {
+                estadoStr = "Con goce de sueldo";
+            } else if (licenciaDetalle.isJustificado()) {
+                estadoStr = "Justificada - Sin goce";
+            } else {
+                estadoStr = "No justificada";
+            }
+
+            // Indicar horas imputadas si corresponde
+            String imputacionStr = "";
+            if (minutosImputadosLicencia > 0) {
+                String horasImputadas = TiempoUtils.formatearMinutosComoHHMM(minutosImputadosLicencia);
+                imputacionStr = " | Se imputan " + horasImputadas + " hs";
+            }
+
+            String observacion = licenciaDetalle.getObservacion() != null && !licenciaDetalle.getObservacion().isBlank()
+                    ? " - " + licenciaDetalle.getObservacion()
+                    : "";
+            setNota(String.format("📋 Licencia %s (%s)%s%s", tipoDesc, estadoStr, imputacionStr, observacion));
+        } else {
+            setNota("📋 Licencia activa para esta fecha.");
+        }
+    }
+
+    private void generarNotaFeriado() {
+        String observacion = getObservacionFeriado();
+        if (observacion != null && !observacion.isBlank()) {
+            setNota("🎉 " + observacion + " - Día no laboral.");
+        } else {
+            setNota("🎉 Día feriado nacional. No se requiere asistencia.");
+        }
+    }
+
+    private void generarNotaFeriadoTrabajado() {
+        String observacion = getObservacionFeriado();
+        String horasTrabajadas = TiempoUtils.formatearMinutosComoHHMM(minutosTrabajados);
+        StringBuilder sb = new StringBuilder("🌟 Feriado trabajado");
+        if (observacion != null && !observacion.isBlank()) {
+            sb.append(" (").append(observacion).append(")");
+        }
+        sb.append(". Horas especiales: ").append(horasTrabajadas);
+        sb.append(". Se aplica bonificación de horas especiales.");
+        setNota(sb.toString());
+    }
+
+    private void generarNotaDiaNoLaboral() {
+        String dia = TiempoUtils.obtenerNombreDia(fecha);
+        setNota("🏖️ " + dia + " no es día laboral según el turno asignado. No se requiere asistencia.");
+    }
+
+    private void generarNotaDiaNoLaboralTrabajado() {
+        String dia = TiempoUtils.obtenerNombreDia(fecha);
+        String horasTrabajadas = TiempoUtils.formatearMinutosComoHHMM(minutosTrabajados);
+        setNota("🌟 Trabajo en día no laboral (" + dia + "). Horas especiales registradas: " + horasTrabajadas
+                + ". Se aplica bonificación.");
+    }
+
+    private void generarNotaPendiente() {
+        StringBuilder sb = new StringBuilder("⏳ Pendiente de ingreso.");
+        if (horaEsperadaEntrada != null) {
+            sb.append(" Turno programado: ");
+            sb.append(TiempoUtils.formatearHora(horaEsperadaEntrada));
+            if (horaEsperadaSalida != null) {
+                sb.append(" a ").append(TiempoUtils.formatearHora(horaEsperadaSalida));
+            }
+            sb.append(".");
+        }
+        if (nombreTurno != null) {
+            sb.append(" (").append(nombreTurno).append(")");
+        }
+        setNota(sb.toString());
+    }
+
+    private void generarNotaEnCurso() {
+        StringBuilder sb = new StringBuilder("🔄 Jornada en curso.");
+
+        // Obtener hora de entrada registrada
+        Optional<LocalTime> entrada = registros.stream()
+                .filter(r -> r.getTipoMovimiento() == TipoMovimiento.ENTRADA)
+                .map(ColeccionRegistros::getHora)
+                .min(LocalTime::compareTo);
+
+        if (entrada.isPresent()) {
+            sb.append(" Ingreso: ").append(TiempoUtils.formatearHora(entrada.get())).append(".");
+
+            // Evaluar si llegó a horario o tarde
+            if (horaEsperadaEntrada != null) {
+                long diferencia = java.time.Duration.between(horaEsperadaEntrada, entrada.get()).toMinutes();
+                if (diferencia > toleranciaMinutos) {
+                    sb.append(" ⚠️ Llegada tarde: +").append(diferencia).append(" min.");
+                } else if (diferencia < -toleranciaMinutos) {
+                    sb.append(" ✓ Llegada anticipada: ").append(Math.abs(diferencia)).append(" min antes.");
+                } else {
+                    sb.append(" ✓ Llegada en horario.");
+                }
+            }
+        }
+
+        if (horaEsperadaSalida != null) {
+            sb.append(" Salida esperada: ").append(TiempoUtils.formatearHora(horaEsperadaSalida)).append(".");
+        }
+
+        setNota(sb.toString());
+    }
+
+    private void generarNotaCompleta() {
+        StringBuilder sb = new StringBuilder("✅ Jornada completa.");
+
+        String horasTrabajadas = TiempoUtils.formatearMinutosComoHHMM(minutosTrabajados);
+        String horasEsperadas = TiempoUtils.formatearMinutosComoHHMM(minutosEsperados);
+        sb.append(" Trabajó ").append(horasTrabajadas);
+        sb.append(" de ").append(horasEsperadas).append(" esperadas.");
+
+        if (minutosExtras > 0) {
+            String horasExtrasStr = TiempoUtils.formatearMinutosComoHHMM(minutosExtras);
+            sb.append(" ⏰ Horas extras: +").append(horasExtrasStr).append(".");
+        }
+
+        // Agregar horario real
+        Optional<LocalTime> entrada = registros.stream()
+                .filter(r -> r.getTipoMovimiento() == TipoMovimiento.ENTRADA)
+                .map(ColeccionRegistros::getHora)
+                .min(LocalTime::compareTo);
+        Optional<LocalTime> salida = registros.stream()
+                .filter(r -> r.getTipoMovimiento() == TipoMovimiento.SALIDA)
+                .map(ColeccionRegistros::getHora)
+                .max(LocalTime::compareTo);
+
+        if (entrada.isPresent() && salida.isPresent()) {
+            sb.append(" Horario: ").append(TiempoUtils.formatearHora(entrada.get()));
+            sb.append(" - ").append(TiempoUtils.formatearHora(salida.get())).append(".");
+        }
+
+        setNota(sb.toString());
+    }
+
+    private void generarNotaIncompleta() {
+        StringBuilder sb = new StringBuilder("⚠️ Jornada incompleta.");
+
+        String horasTrabajadas = TiempoUtils.formatearMinutosComoHHMM(minutosTrabajados);
+        String horasEsperadas = TiempoUtils.formatearMinutosComoHHMM(minutosEsperados);
+        int faltantes = minutosEsperados - minutosTrabajados;
+        String horasFaltantes = TiempoUtils.formatearMinutosComoHHMM(Math.max(0, faltantes));
+
+        sb.append(" Trabajó ").append(horasTrabajadas);
+        sb.append(" de ").append(horasEsperadas).append(" esperadas.");
+        sb.append(" Faltan: ").append(horasFaltantes).append(".");
+
+        // Agregar horario real
+        Optional<LocalTime> entrada = registros.stream()
+                .filter(r -> r.getTipoMovimiento() == TipoMovimiento.ENTRADA)
+                .map(ColeccionRegistros::getHora)
+                .min(LocalTime::compareTo);
+        Optional<LocalTime> salida = registros.stream()
+                .filter(r -> r.getTipoMovimiento() == TipoMovimiento.SALIDA)
+                .map(ColeccionRegistros::getHora)
+                .max(LocalTime::compareTo);
+
+        if (entrada.isPresent() && salida.isPresent()) {
+            sb.append(" Horario registrado: ").append(TiempoUtils.formatearHora(entrada.get()));
+            sb.append(" - ").append(TiempoUtils.formatearHora(salida.get())).append(".");
+
+            // Detectar causa probable
+            if (horaEsperadaEntrada != null) {
+                long llegadaTarde = java.time.Duration.between(horaEsperadaEntrada, entrada.get()).toMinutes();
+                if (llegadaTarde > toleranciaMinutos) {
+                    sb.append(" Llegada tarde: +").append(llegadaTarde).append(" min.");
+                }
+            }
+            if (horaEsperadaSalida != null) {
+                long salidaAnticipada = java.time.Duration.between(salida.get(), horaEsperadaSalida).toMinutes();
+                if (salidaAnticipada > toleranciaMinutos) {
+                    sb.append(" Salida anticipada: -").append(salidaAnticipada).append(" min.");
+                }
+            }
+        }
+
+        setNota(sb.toString());
+    }
+
+    private void generarNotaAusente() {
+        StringBuilder sb = new StringBuilder("❌ Ausente.");
+
+        if (nombreTurno != null && horaEsperadaEntrada != null && horaEsperadaSalida != null) {
+            sb.append(" Turno asignado era ");
+            sb.append(nombreTurno).append(": ");
+            sb.append(TiempoUtils.formatearHora(horaEsperadaEntrada));
+            sb.append(" a ").append(TiempoUtils.formatearHora(horaEsperadaSalida)).append(".");
+        }
+
+        if (justificado) {
+            sb.append(" (Justificado)");
+        } else {
+            sb.append(" Sin justificación registrada.");
+        }
+
+        setNota(sb.toString());
+    }
+
+    /**
+     * Genera nota para jornadas sin registro de entrada.
+     */
+    private void generarNotaSinEntrada() {
+        StringBuilder sb = new StringBuilder("⚠️ FICHADA FALTANTE: No se registró entrada.");
+
+        // Obtener hora de salida registrada
+        Optional<LocalTime> salida = registros.stream()
+                .filter(r -> r.getTipoMovimiento() == TipoMovimiento.SALIDA)
+                .map(ColeccionRegistros::getHora)
+                .max(LocalTime::compareTo);
+
+        if (salida.isPresent()) {
+            sb.append(" Salida registrada: ").append(TiempoUtils.formatearHora(salida.get())).append(".");
+        }
+
+        if (horaEsperadaEntrada != null) {
+            sb.append(" Entrada esperada era: ").append(TiempoUtils.formatearHora(horaEsperadaEntrada)).append(".");
+        }
+
+        sb.append(" Requiere corrección manual.");
+        setNota(sb.toString());
+    }
+
+    /**
+     * Genera nota para jornadas sin registro de salida.
+     */
+    private void generarNotaSinSalida() {
+        StringBuilder sb = new StringBuilder("⚠️ FICHADA FALTANTE: No se registró salida.");
+
+        // Obtener hora de entrada registrada
+        Optional<LocalTime> entrada = registros.stream()
+                .filter(r -> r.getTipoMovimiento() == TipoMovimiento.ENTRADA)
+                .map(ColeccionRegistros::getHora)
+                .min(LocalTime::compareTo);
+
+        if (entrada.isPresent()) {
+            sb.append(" Entrada registrada: ").append(TiempoUtils.formatearHora(entrada.get())).append(".");
+        }
+
+        if (horaEsperadaSalida != null) {
+            sb.append(" Salida esperada era: ").append(TiempoUtils.formatearHora(horaEsperadaSalida)).append(".");
+        }
+
+        sb.append(" Requiere corrección manual.");
+        setNota(sb.toString());
+    }
+
+    /**
+     * Retorna las horas trabajadas dentro del horario normal del turno.
+     * 
+     * <p>
+     * Para licencias parciales, suma las horas imputadas con las trabajadas.
+     * Para licencias totales, usa solo las imputadas.
+     * </p>
+     * 
+     * @return Horas normales en formato "HH:MM"
+     */
+    @Transient
+    @ReadOnly
+    @DisplaySize(10)
+    @MiLabel(medida = "mediana", negrita = true, recuadro = true, icon = "alarm")
+    public String getHorasTrabajadasTurno() {
+        if (esJornadaEspecial())
+            return "00:00";
+
+        // Licencia parcial: sumar horas imputadas + horas trabajadas
+        if (licenciaParcial && minutosImputadosLicencia > 0) {
+            int totalCombinado = minutosImputadosLicencia + minutosTrabajados;
+            // No exceder los minutos esperados del turno
+            totalCombinado = Math.min(totalCombinado, minutosEsperados);
+            return TiempoUtils.formatearMinutosComoHHMM(totalCombinado);
+        }
+
+        // Licencia total con goce: usar solo los imputados
+        if (minutosImputadosLicencia > 0) {
+            return TiempoUtils.formatearMinutosComoHHMM(minutosImputadosLicencia);
+        }
+
+        // Lógica normal de fichajes
+        int minutosNormalesBase;
+        if (minutosTrabajados >= (minutosEsperados - toleranciaMinutos)) {
+            minutosNormalesBase = minutosEsperados;
+        } else {
+            minutosNormalesBase = Math.min(minutosTrabajados, minutosEsperados);
+        }
+
+        // Incluir ambos ajustes: manual + redondeo automático
+        int totalMinutos = Math.max(0, minutosNormalesBase + ajusteMinutosNormales + ajusteRedondeoNormales);
+        return TiempoUtils.formatearMinutosComoHHMM(totalMinutos);
+    }
+
+    /**
+     * Retorna las horas extras trabajadas (fuera del horario normal).
+     * 
+     * @return Horas extras en formato "HH:MM"
+     */
+    @Transient
+    @ReadOnly
+    @DisplaySize(10)
+    @MiLabel(medida = "mediana", negrita = true, recuadro = true, icon = "alarm-plus")
+    public String getHorasExtras() {
+        if (esJornadaEspecial())
+            return "00:00";
+        // Minutos extras calculados + Ajuste manual + Ajuste redondeo
+        int totalExtras = Math.max(0, minutosExtras + ajusteMinutosExtras + ajusteRedondeoExtras);
+        return TiempoUtils.formatearMinutosComoHHMM(totalExtras);
+    }
+
+    /**
+     * Retorna las horas trabajadas en días especiales (feriados, domingos).
+     * 
+     * @return Horas especiales en formato "HH:MM"
+     */
+    @Transient
+    @ReadOnly
+    @DisplaySize(10)
+    @MiLabel(medida = "mediana", negrita = true, recuadro = true, icon = "alarm-multiple")
+    public String getHorasEspeciales() {
+        // En feriados/días no laborales, todo el tiempo es especial
+        int base = esJornadaEspecial() ? minutosTrabajados : 0;
+        // Incluir ambos ajustes: manual + redondeo automático
+        int total = Math.max(0, base + ajusteMinutosEspeciales + ajusteRedondeoEspeciales);
+        return TiempoUtils.formatearMinutosComoHHMM(total);
+    }
+
+    // ==================================================================================
+    // HORAS BASE (SIN AJUSTE) - SOLO DISPLAY
+    // ==================================================================================
+
+    /**
+     * Horas normales BASE antes del ajuste.
+     * Muestra los minutos trabajados calculados sin el ajuste manual.
+     */
+    @Transient
+    @ReadOnly
+    @DisplaySize(10)
+    @MiLabel(medida = "mediana", negrita = true, recuadro = true, icon = "clock-outline")
+    public String getHorasBaseNormales() {
+        if (esJornadaEspecial())
+            return "00:00";
+
+        int minutosNormalesBase;
+        if (minutosTrabajados >= (minutosEsperados - toleranciaMinutos)) {
+            minutosNormalesBase = minutosEsperados;
+        } else {
+            minutosNormalesBase = Math.min(minutosTrabajados, minutosEsperados);
+        }
+        return TiempoUtils.formatearMinutosComoHHMM(Math.max(0, minutosNormalesBase));
+    }
+
+    /**
+     * Horas extras BASE antes del ajuste.
+     */
+    @Transient
+    @ReadOnly
+    @DisplaySize(10)
+    @MiLabel(medida = "mediana", negrita = true, recuadro = true, icon = "clock-plus-outline")
+    public String getHorasBaseExtras() {
+        if (esJornadaEspecial())
+            return "00:00";
+        return TiempoUtils.formatearMinutosComoHHMM(Math.max(0, minutosExtras));
+    }
+
+    /**
+     * Horas especiales BASE antes del ajuste.
+     */
+    @Transient
+    @ReadOnly
+    @DisplaySize(10)
+    @MiLabel(medida = "mediana", negrita = true, recuadro = true, icon = "clock-star-four-points-outline")
+    public String getHorasBaseEspeciales() {
+        int base = esJornadaEspecial() ? minutosTrabajados : 0;
+        return TiempoUtils.formatearMinutosComoHHMM(Math.max(0, base));
+    }
+
+    // ==================================================================================
+    // COLECCIÓN PARA TABLA DE CÁLCULOS (@ElementCollection)
+    // ==================================================================================
+
+    /**
+     * Retorna la colección de filas para la tabla de cálculos.
+     * Cada fila representa un tipo de hora (Normales, Extras, Especiales).
+     */
+    @Transient
+    @ElementCollection
+    @ListProperties("tipo, valorHora, horasRegistradas, ajuste, total+")
+    @RemoveSelectedAction("AuditoriaRegistros.ajustarHorasPorTipo")
+    public List<FilaCalculo> getFilasCalculo() {
+        List<FilaCalculo> filas = new ArrayList<>();
+
+        // Fila: Horas Normales
+        filas.add(new FilaCalculo(
+                "⏰ Normales",
+                getValorHoraNormalDisplay(),
+                getHorasBaseNormales(),
+                getAjusteNormalesDisplay(),
+                getTotalHorasTurno()));
+
+        // Fila: Horas Extras
+        filas.add(new FilaCalculo(
+                "⏰+ Extras",
+                getValorHoraExtraDisplay(),
+                getHorasBaseExtras(),
+                getAjusteExtrasDisplay(),
+                getTotalHorasExtras()));
+
+        // Fila: Horas Especiales
+        filas.add(new FilaCalculo(
+                "⭐ Especiales",
+                getValorHoraEspecialDisplay(),
+                getHorasBaseEspeciales(),
+                getAjusteEspecialesDisplay(),
+                getTotalHorasEspeciales()));
+
+        return filas;
+    }
+
+    /**
+     * Setter vacío requerido por OpenXava para propiedades @ReadOnly.
+     */
+    public void setFilasCalculo(List<FilaCalculo> filas) {
+        // No-op: colección calculada, solo lectura
+    }
+
+    /**
+     * Calcula el monto total por horas normales trabajadas.
+     * Siempre calcula dinámicamente usando las horas (con ajustes) × valorHora.
+     */
+    @Transient
+    @ReadOnly
+    @DisplaySize(10)
+    @LabelFormat(LabelFormatType.SMALL)
+    @Money
+    @Depends("horasTrabajadasTurno,ajusteMinutosNormales")
+    public BigDecimal getTotalHorasTurno() {
+        // Usar valor hora del turno (snapshot) o base
+        BigDecimal valorHora = valorHoraTurnoSnapshot != null ? valorHoraTurnoSnapshot
+                : valorHoraSnapshot != null ? valorHoraSnapshot : BigDecimal.ZERO;
+
+        return calcularTotalMonetario(getHorasTrabajadasTurno(), valorHora);
+    }
+
+    /**
+     * Calcula el monto total por horas extras.
+     * Siempre calcula dinámicamente usando las horas (con ajustes) ×
+     * valorHoraExtra.
+     */
+    @Transient
+    @ReadOnly
+    @DisplaySize(10)
+    @LabelFormat(LabelFormatType.SMALL)
+    @Money
+    @Depends("horasExtras,ajusteMinutosExtras")
+    public BigDecimal getTotalHorasExtras() {
+        // Calcular valor hora extra desde snapshot base
+        BigDecimal baseHora = valorHoraSnapshot != null ? valorHoraSnapshot : BigDecimal.ZERO;
+        if (baseHora.compareTo(BigDecimal.ZERO) == 0)
+            return BigDecimal.ZERO;
+
+        // Porcentaje extra: usar del empleado o default 50%
+        BigDecimal porcentajeExtra = getEmpleado() != null && getEmpleado().getPorcentajeHoraExtra() != null
+                ? getEmpleado().getPorcentajeHoraExtra()
+                : new BigDecimal("50");
+
+        BigDecimal valorHoraExtra = baseHora.multiply(
+                BigDecimal.ONE.add(porcentajeExtra.divide(new BigDecimal("100"), 4, java.math.RoundingMode.HALF_UP)))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+
+        return calcularTotalMonetario(getHorasExtras(), valorHoraExtra);
+    }
+
+    /**
+     * Calcula el monto total por horas especiales.
+     * Siempre calcula dinámicamente usando las horas (con ajustes) ×
+     * valorHoraEspecial.
+     */
+    @Transient
+    @ReadOnly
+    @DisplaySize(10)
+    @LabelFormat(LabelFormatType.SMALL)
+    @Money
+    @Depends("horasEspeciales,ajusteMinutosEspeciales")
+    public BigDecimal getTotalHorasEspeciales() {
+        // Calcular valor hora especial desde snapshot base
+        BigDecimal baseHora = valorHoraSnapshot != null ? valorHoraSnapshot : BigDecimal.ZERO;
+        if (baseHora.compareTo(BigDecimal.ZERO) == 0)
+            return BigDecimal.ZERO;
+
+        // Porcentaje especial: usar del empleado o default 100%
+        BigDecimal porcentajeEspecial = getEmpleado() != null && getEmpleado().getPorcentajeHoraEspecial() != null
+                ? getEmpleado().getPorcentajeHoraEspecial()
+                : new BigDecimal("100");
+
+        BigDecimal valorHoraEspecial = baseHora.multiply(
+                BigDecimal.ONE.add(porcentajeEspecial.divide(new BigDecimal("100"), 4, java.math.RoundingMode.HALF_UP)))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+
+        return calcularTotalMonetario(getHorasEspeciales(), valorHoraEspecial);
+    }
+
+    // ==================================================================================
+    // MÉTODOS AUXILIARES
+    // ==================================================================================
+
+    /**
+     * Retorna la descripción del feriado si la fecha corresponde a uno.
+     * 
+     * @return Descripción del feriado o cadena vacía
+     */
+    @Transient
+    @Label
+    @LabelFormat(LabelFormatType.NO_LABEL)
+    @Depends("sucursalSeleccionada, fechaHoraActual")
+    public String getObservacionFeriado() {
+        try {
+            Feriados feriado = XPersistence.getManager()
+                    .createQuery("SELECT f FROM Feriados f WHERE f.fecha = :fecha", Feriados.class)
+                    .setParameter("fecha", fecha)
+                    .getSingleResult();
+            return feriado.getTipo().toUpperCase() + " - " + feriado.getMotivo();
+        } catch (NoResultException e) {
+            return "";
+        }
+    }
+
+    /**
+     * Verifica si la jornada corresponde a un día especial (solo feriados).
+     * 
+     * <p>
+     * Según Ley de Contrato de Trabajo Argentina (Art. 201):
+     * - Solo los feriados nacionales trabajados aplican como horas especiales
+     * (extras al 100%)
+     * - Los días sin turno asignado trabajados se computan como horas extras
+     * normales (50%)
+     * </p>
+     * 
+     * @return true si es feriado trabajado con bonificación especial
+     */
+    @Transient
+    private boolean esJornadaEspecial() {
+        return evaluacion == EvaluacionJornada.FERIADO_TRABAJADO;
+    }
+
+    /**
+     * Determina si el empleado debe trabajar en este feriado PUENTE.
+     * 
+     * Condiciones (todas deben cumplirse):
+     * 1. La fecha está marcada como feriado
+     * 2. La fecha es un feriado tipo PUENTE
+     * 3. El turno asignado al empleado es ESPECIAL
+     * 4. El turno tiene marcado trabajaFeriadosPuente = true
+     * 5. El día de la semana es laboral según la configuración del turno
+     * 
+     * @return true si el empleado debe trabajar en este feriado puente
+     */
+    @Transient
+    private boolean debeTrabajarFeriadoPuente() {
+        if (!feriado || empleado == null || fecha == null) return false;
+        if (!Feriados.esFeriadoPuente(fecha)) return false;
+
+        TurnosHorarios turno = empleado.getTurnoParaFecha(fecha);
+        if (turno == null) return false;
+        if (turno.getTurnoNombre() != Turnos.ESPECIAL) return false;
+        if (!turno.isTrabajaFeriadosPuente()) return false;
+
+        return turno.esLaboral(fecha.getDayOfWeek());
+    }
+
+    /**
+     * Muestra el rango horario real basado en las fichadas.
+     * 
+     * <p>
+     * Formato: "HH:MM - HH:MM" (entrada - salida)
+     * </p>
+     * 
+     * @return Rango horario o mensaje de estado si faltan fichadas
+     */
+    @Transient
+    @ReadOnly
+    public String getHorario() {
+        if (registros == null || registros.isEmpty())
+            return "Sin Registros";
+
+        Optional<LocalTime> entrada = registros.stream()
+                .filter(r -> r.getTipoMovimiento() == TipoMovimiento.ENTRADA)
+                .map(ColeccionRegistros::getHora)
+                .min(LocalTime::compareTo);
+
+        Optional<LocalTime> salida = registros.stream()
+                .filter(r -> r.getTipoMovimiento() == TipoMovimiento.SALIDA)
+                .map(ColeccionRegistros::getHora)
+                .max(LocalTime::compareTo);
+
+        if (entrada.isPresent() && salida.isPresent()) {
+            return TiempoUtils.formatearHora(entrada.get()) + " < " + TiempoUtils.formatearHora(salida.get());
+        } else if (entrada.isPresent()) {
+            return "Entrada: " + TiempoUtils.formatearHora(entrada.get());
+        } else if (salida.isPresent()) {
+            return "Salida: " + TiempoUtils.formatearHora(salida.get());
+        } else {
+            return "Sin Registros";
+        }
+    }
+
+    /**
+     * Retorna el día de la semana en español.
+     * 
+     * @return Nombre del día (ej: "LUNES", "MARTES")
+     */
+    @Transient
+    @ReadOnly
+    @Depends("fecha")
+    public String getDiaSemana() {
+        return TiempoUtils.obtenerNombreDia(fecha);
+    }
+
+    /**
+     * Retorna la descripción del turno planificado para la fecha.
+     * 
+     * <p>
+     * Incluye código del turno, horario esperado y tolerancia.
+     * </p>
+     * 
+     * @return Descripción del turno o "Sin turno asignado"
+     */
+    @Transient
+    @DisplaySize(100)
+    @MiLabel(medida = "chica", negrita = true, recuadro = true, icon = "calendar-check", multiline = false, mayuscula = false)
+    public String getTurnoPlanificado() {
+        if (nombreTurno == null)
+            return "SIN TURNO";
+
+        String dia = TiempoUtils.obtenerNombreDia(fecha);
+        String fechaStr = TiempoUtils.formatearFecha(fecha);
+        String horario = "";
+
+        if (horaEsperadaEntrada != null && horaEsperadaSalida != null) {
+            horario = " de " + TiempoUtils.formatearHora(horaEsperadaEntrada) + " a " +
+                    TiempoUtils.formatearHora(horaEsperadaSalida);
+        }
+
+        String toleranciaStr = (toleranciaMinutos > 0) ? " /Tol. " + toleranciaMinutos + "Min." : "";
+
+        // Mostrar bonificación si existe
+        String bonificacionStr = "";
+        if (porcentajeBonificacionSnapshot != null &&
+                porcentajeBonificacionSnapshot.compareTo(BigDecimal.ZERO) > 0) {
+            bonificacionStr = " +" + porcentajeBonificacionSnapshot.setScale(0, RoundingMode.HALF_UP) + "%";
+        }
+
+        return dia + ", " + fechaStr + " - " + horario + toleranciaStr + bonificacionStr;
+    }
+
+    /**
+     * Calcula el monto monetario dado un tiempo y valor hora.
+     * 
+     * @param horasEnFormatoHHmm Tiempo en formato "HH:MM"
+     * @param valorPorHora       Valor monetario por hora
+     * @return Monto calculado (horas × valor)
+     */
+    private BigDecimal calcularTotalMonetario(String horasEnFormatoHHmm, BigDecimal valorPorHora) {
+        if (horasEnFormatoHHmm == null || valorPorHora == null)
+            return BigDecimal.ZERO;
+        try {
+            String[] partes = horasEnFormatoHHmm.split(":");
+            int horas = Integer.parseInt(partes[0]);
+            int minutos = Integer.parseInt(partes[1]);
+
+            BigDecimal horasDecimal = BigDecimal.valueOf(horas).add(
+                    BigDecimal.valueOf(minutos).divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP));
+
+            return valorPorHora.multiply(horasDecimal).setScale(2, RoundingMode.HALF_UP);
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    // ==================================================================================
+    // INDICADOR VISUAL PARA LISTA
+    // ==================================================================================
+
+    /**
+     * Muestra un indicador visual del estado de la jornada para la vista de lista.
+     * 
+     * <p>
+     * Permite identificar rápidamente registros que necesitan revisión o tienen
+     * situaciones especiales.
+     * </p>
+     * 
+     * <p>
+     * Ejemplos de salida:
+     * </p>
+     * <ul>
+     * <li>"⏰ +2h30m Extras" - horas extras trabajadas</li>
+     * <li>"⚠️ -1h Faltan" - horas pendientes</li>
+     * <li>"✅ Completa" - jornada cumplida</li>
+     * <li>"🏖️ Feriado" - día feriado</li>
+     * </ul>
+     * 
+     * @return String con emoji e información del estado
+     */
+    @Transient
+
+    @MiLabel(medida = "mediana", negrita = true, recuadro = false, mayuscula = false)
+    public String getEstadoJornada() {
+        // Si hay ajustes manuales, indicarlo siempre
+        if (tieneAjustesManuales()) {
+            return "📝 Ajustado";
+        }
+
+        // Según evaluación
+        if (evaluacion == null) {
+            return "";
+        }
+
+        switch (evaluacion) {
+            case AUSENTE:
+                return "❌ Ausente";
+            case LICENCIA:
+                return "📄 Licencia";
+            case FERIADO:
+                return "🎉 Feriado";
+            case FERIADO_TRABAJADO:
+            case DIA_NO_LABORAL_TRABAJADO:
+                return "🌟 Especial";
+            case INCOMPLETA:
+                int faltantes = minutosEsperados - minutosTrabajados;
+                if (faltantes > 0) {
+                    return "⚠️ Faltan " + formatearMinutosCompacto(faltantes);
+                }
+                return "⚠️ Incompleta";
+            case COMPLETA:
+                if (minutosExtras > 0) {
+                    return "⏰ +" + formatearMinutosCompacto(minutosExtras) + " Extras";
+                }
+                return "✅ Completa";
+            case EN_CURSO:
+                return "🔄 En curso";
+            case PENDIENTE:
+                return "⏱️ Pendiente";
+            case DIA_NO_LABORAL:
+            case SIN_TURNO_ASIGNADO:
+                return "🏖️ No laboral";
+            case SIN_DATOS:
+                return "❓ Sin datos";
+            default:
+                return "";
+        }
+    }
+
+    /**
+     * Verifica si el registro tiene ajustes manuales aplicados.
+     * 
+     * <p>
+     * Los ajustes manuales permiten corregir errores de fichado
+     * o agregar tiempo no registrado automáticamente.
+     * </p>
+     * 
+     * @return true si hay ajustes en minutos normales, extras o especiales
+     * @see AjusteHorasManual
+     */
+    @Transient
+    private boolean tieneAjustesManuales() {
+        return ajusteMinutosNormales != 0 || ajusteMinutosExtras != 0 || ajusteMinutosEspeciales != 0;
+    }
+
+    /**
+     * Formatea minutos a formato compacto para mostrar en lista.
+     * 
+     * <p>
+     * Ejemplos:
+     * </p>
+     * <ul>
+     * <li>150 → "2h30m"</li>
+     * <li>60 → "1h"</li>
+     * <li>45 → "45m"</li>
+     * </ul>
+     * 
+     * @param minutos número de minutos a formatear
+     * @return String formateado
+     */
+    @Transient
+    private String formatearMinutosCompacto(int minutos) {
+        int minutosAbs = Math.abs(minutos);
+        int horas = minutosAbs / 60;
+        int mins = minutosAbs % 60;
+
+        if (horas > 0 && mins > 0) {
+            return horas + "h " + mins + "m";
+        } else if (horas > 0) {
+            return horas + "h";
+        } else {
+            return mins + "m";
+        }
+    }
+
+    // ==================================================================================
+    // PROPIEDADES DE VISUALIZACIÓN PARA TABLA (CALCULOS Y AJUSTES)
+    // ==================================================================================
+
+    /**
+     * Muestra el valor hora normal para este registro (snapshot histórico).
+     * Usa valorHoraTurnoSnapshot que incluye bonificación del turno.
+     */
+    @Transient
+    @ReadOnly
+    @MiLabel(medida = "mediana", negrita = true, recuadro = true, icon = "currency-usd")
+    @Money
+    public BigDecimal getValorHoraNormalDisplay() {
+        // Usar snapshot si existe, fallback al snapshot base
+        if (valorHoraTurnoSnapshot != null) {
+            return valorHoraTurnoSnapshot;
+        }
+        return valorHoraSnapshot != null ? valorHoraSnapshot : BigDecimal.ZERO;
+    }
+
+    /**
+     * Muestra el valor hora extra para este registro (calculado desde snapshot).
+     * Calcula: valorHoraSnapshot × (1 + porcentajeExtra/100)
+     */
+    @Transient
+    @ReadOnly
+    @MiLabel(medida = "mediana", negrita = true, recuadro = true, icon = "currency-usd")
+    @Money
+    public BigDecimal getValorHoraExtraDisplay() {
+        BigDecimal baseHora = valorHoraSnapshot != null ? valorHoraSnapshot : BigDecimal.ZERO;
+        if (baseHora.compareTo(BigDecimal.ZERO) == 0)
+            return BigDecimal.ZERO;
+
+        // Porcentaje extra típico: 50% según LCT Argentina
+        BigDecimal porcentajeExtra = getEmpleado() != null && getEmpleado().getPorcentajeHoraExtra() != null
+                ? getEmpleado().getPorcentajeHoraExtra()
+                : new BigDecimal("50");
+
+        BigDecimal multiplicador = BigDecimal.ONE
+                .add(porcentajeExtra.divide(new BigDecimal("100"), 4, java.math.RoundingMode.HALF_UP));
+        return baseHora.multiply(multiplicador).setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Muestra el valor hora especial para este registro (calculado desde snapshot).
+     * Calcula: valorHoraSnapshot × (1 + porcentajeEspecial/100)
+     */
+    @Transient
+    @ReadOnly
+    @MiLabel(medida = "mediana", negrita = true, recuadro = true, icon = "currency-usd")
+    @Money
+    public BigDecimal getValorHoraEspecialDisplay() {
+        BigDecimal baseHora = valorHoraSnapshot != null ? valorHoraSnapshot : BigDecimal.ZERO;
+        if (baseHora.compareTo(BigDecimal.ZERO) == 0)
+            return BigDecimal.ZERO;
+
+        // Porcentaje especial típico: 100% según LCT Argentina
+        BigDecimal porcentajeEspecial = getEmpleado() != null && getEmpleado().getPorcentajeHoraEspecial() != null
+                ? getEmpleado().getPorcentajeHoraEspecial()
+                : new BigDecimal("100");
+
+        BigDecimal multiplicador = BigDecimal.ONE
+                .add(porcentajeEspecial.divide(new BigDecimal("100"), 4, java.math.RoundingMode.HALF_UP));
+        return baseHora.multiply(multiplicador).setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Muestra el ajuste de minutos normales formateado.
+     */
+    @Transient
+    @ReadOnly
+    @LabelFormat(LabelFormatType.SMALL)
+    @DisplaySize(8)
+    public String getAjusteNormalesDisplay() {
+        if (ajusteMinutosNormales == 0)
+            return "S/A";
+        return TiempoUtils.formatearMinutosConSigno(ajusteMinutosNormales);
+    }
+
+    /**
+     * Muestra el ajuste de minutos extras formateado.
+     */
+    @Transient
+    @ReadOnly
+    @LabelFormat(LabelFormatType.SMALL)
+    @DisplaySize(8)
+    public String getAjusteExtrasDisplay() {
+        if (ajusteMinutosExtras == 0)
+            return "S/A";
+        return TiempoUtils.formatearMinutosConSigno(ajusteMinutosExtras);
+    }
+
+    /**
+     * Muestra el ajuste de minutos especiales formateado.
+     */
+    @Transient
+    @ReadOnly
+    @LabelFormat(LabelFormatType.SMALL)
+    @DisplaySize(8)
+    public String getAjusteEspecialesDisplay() {
+        if (ajusteMinutosEspeciales == 0)
+            return "S/A";
+        return TiempoUtils.formatearMinutosConSigno(ajusteMinutosEspeciales);
+    }
+
+    // ==================================================================================
+    // GETTERS BÁSICOS FALTANTES (requeridos por Jobs)
+    // ==================================================================================
+
+    /**
+     * Indica si la jornada corresponde a un turno nocturno (cruza medianoche).
+     */
+    public boolean isEsJornadaNocturna() {
+        return esJornadaNocturna;
+    }
+
+    /**
+     * Establece si la jornada es nocturna.
+     */
+    public void setEsJornadaNocturna(boolean esJornadaNocturna) {
+        this.esJornadaNocturna = esJornadaNocturna;
+    }
+
+    /**
+     * Retorna el estado de evaluación de la jornada.
+     */
+    public EvaluacionJornada getEvaluacion() {
+        return evaluacion;
+    }
+
+    /**
+     * Establece el estado de evaluación de la jornada.
+     */
+    public void setEvaluacion(EvaluacionJornada evaluacion) {
+        this.evaluacion = evaluacion;
+    }
+
+    /**
+     * Retorna la hora de salida esperada según el turno.
+     * Usado por CierreJornadaNocturnaJob para verificar si el turno ya terminó.
+     */
+    public LocalTime getHoraEsperadaSalida() {
+        return horaEsperadaSalida;
+    }
+
+}

@@ -1,0 +1,337 @@
+<?xml version = "1.0" encoding = "ISO-8859-1"?>
+
+<!DOCTYPE controladores SYSTEM "dtds/controladores.dtd">
+
+<!-- 
+Documentaci�n sobre controladores: 
+https://www.openxava.org/OpenXavaDoc/docs/controllers_es.html
+
+Controladores por defecto, incluidos en OpenXava (puedes extender de ellos):
+https://github.com/openxava/openxava/blob/master/openxava/src/main/resources/xava/default-controllers.xml
+ 
+Ejemplos de controladores (de la aplicaci�n de pruebas):
+https://github.com/openxava/openxava/blob/master/openxavatest/src/main/resources/xava/controllers.xml
+-->
+
+<controladores>
+
+    <!-- Variable de entorno: 
+    <var-entorno nombre="biometric_ANYO_DEFECTO" valor="2015"/>
+    -->
+
+    <!-- Objeto de sesi�n:
+    <Objeto nombre="biometric_anyoActivo" clase="java.lang.Integer" valor="2025" ambito="global"/>
+    -->
+
+    <!-- Controlador:
+    <controlador nombre="Profesor">
+        <hereda-de controlador="Typical"/>
+        <accion nombre="new" icono="library-plus" atajo-de-teclado="Control N" clase="acciones.CrearProfesor"/>        
+    </controlador>
+    -->
+
+    <controlador nombre="MiTypical">
+        <hereda-de controlador="CRUD"/>
+        <hereda-de controlador="Print"/>
+    </controlador>
+
+    <controlador nombre="MiTypicalNoResetNoNavNoImport">
+        <hereda-de controlador="MiTypical" acciones-excluidas="refresh"/>
+
+        <accion nombre="new" clase="org.openxava.actions.NewAction" imagen="new.gif" icono="library-plus" atajo-de-teclado="Control N" disponible-en-nuevo="false" por-defecto="nunca" pierde-datos-cambiados="true">
+            <poner propiedad="restoreModel" valor="true"/>
+        </accion>
+
+        <accion nombre="delete" modo="detail" confirmar="true" clase="org.openxava.actions.DeleteAction" imagen="delete.gif" disponible-en-nuevo="false" icono="delete" por-defecto="nunca" atajo-de-teclado="Control D">
+        </accion>
+
+        <accion nombre="save" modo="detail" confirmar="true" clase="org.openxava.actions.SaveAction" icono="content-save" disponible-en-nuevo="true" por-defecto="nunca" atajo-de-teclado="Control S">
+            <poner propiedad="resetAfter" valor="false" />
+        </accion>
+    </controlador>
+
+
+
+
+    <controlador nombre="Personal">
+        <!-- Heredar de MiTypicalNoResetNoNavNoImport, excluyendo solo list -->
+        <hereda-de controlador="MiTypicalNoResetNoNavNoImport" acciones-excluidas="list"/>
+
+        <!-- Accion para Nuevo: cambia a vista simplificada "Crear" -->
+        <accion nombre="new" icono="library-plus" atajo-de-teclado="Control N" clase="com.sta.biometric.acciones.PersonalNuevoAction" modo="list" disponible-en-nuevo="false" pierde-datos-cambiados="true"/>
+
+        <!-- Accion search: cambia a vista completa al editar -->
+        <accion nombre="search" oculta="true" por-defecto="si-posible" clase="com.sta.biometric.acciones.PersonalBuscarVistaAction"/>
+
+        <accion nombre="borrarContrasena" oculta="true" clase="com.sta.biometric.acciones.BlanquearContrasenaAction" icono="lock-reset" confirmar="true" disponible-en-nuevo="false">
+        </accion>
+
+        <accion nombre="borrarDeviceId" oculta="true" clase="com.sta.biometric.acciones.BlanquearDeviceIdAction" icono="lock-reset" confirmar="true" disponible-en-nuevo="false">
+        </accion>
+
+        <accion nombre="generarTerminalUserId" oculta="true" clase="com.sta.biometric.acciones.GenerarTerminalUserIdAction" icono="autorenew" confirmar="true" disponible-en-nuevo="false">
+        </accion>
+
+        <accion nombre="dni" oculta="true" clase="com.sta.biometric.acciones.DniEditarEnDialogoAction" icono="camera-account" confirmar="false" disponible-en-nuevo="false">
+        </accion>
+
+        <accion nombre="IrANSES" oculta="true" clase="com.sta.biometric.acciones.AbrirUrlAnsesAccion">
+        </accion>
+
+        <accion nombre="AbrirWhatsApp" oculta="true" clase="com.sta.biometric.acciones.AbrirWhatsAppAction" icono="whatsapp">
+        </accion>
+
+        <accion nombre="buscar" oculta="true" modo="detail" clase="com.sta.biometric.acciones.PersonalBuscarAction">
+        </accion>
+
+        <accion nombre="imprimirFicha" clase="com.sta.biometric.acciones.PersonalImprimirFichaAction" icono="printer" modo="detail" disponible-en-nuevo="false" por-defecto ="nunca">
+        </accion>
+
+        <accion nombre="informeAnual" oculta="true" clase="com.sta.biometric.acciones.PersonalInformeAnualAction" icono="account-file-text" modo="detail" disponible-en-nuevo="false" por-defecto ="nunca">
+        </accion>
+
+        <!-- Redefinir acciones heredadas para que las etiquetas Personal.X funcionen -->
+        <!-- Acción save personalizada: verifica contrato vigente antes de guardar -->
+        <accion nombre="save" modo="detail" confirmar="true" clase="com.sta.biometric.acciones.PersonalSaveAction" icono="content-save" disponible-en-nuevo="true" por-defecto="nunca" atajo-de-teclado="Control S">
+            <poner propiedad="resetAfter" valor="false"/>
+        </accion>
+
+        <accion nombre="cambiarLegajo" oculta="true" clase="com.sta.biometric.acciones.CambiarLegajoAction" icono="pencil" disponible-en-nuevo="false">
+        </accion>
+
+        <!-- ================================================================== -->
+        <!-- PAPELERA: Redefinir acciones de eliminación para usar soft-delete -->
+        <!-- ================================================================== -->
+
+        <!-- delete: Eliminar desde vista de detalle (Control+D) -->
+        <accion nombre="delete" modo="detail" confirmar="true" clase="com.sta.biometric.acciones.EliminarPersonalDesdeDetalleAction" icono="delete" disponible-en-nuevo="false" por-defecto="nunca" atajo-de-teclado="Control D"/>
+
+        <!-- deleteSelected: Botón "Borrar" en la barra de la lista -->
+        <accion nombre="deleteSelected" modo="list" confirmar="true" procesar-elementos-seleccionados="true" icono="delete" clase="com.sta.biometric.acciones.EliminarPersonalParaPapeleraAction" atajo-de-teclado="Control D">
+            <poner propiedad="restaurar" valor="false"/>
+        </accion>
+
+        <!-- deleteRow: Icono de papelera en cada fila -->
+        <accion nombre="deleteRow" modo="NONE" confirmar="true" clase="com.sta.biometric.acciones.EliminarPersonalParaPapeleraAction" icono="delete" en-cada-fila="true">
+            <poner propiedad="restaurar" valor="false"/>
+        </accion>
+
+        <!-- Acción para ir al módulo de Papelera de Personal -->
+        <accion nombre="irAPapelera" modo="list" icono="delete-empty" clase="com.sta.biometric.acciones.IrAPapeleraPersonalAction"/>
+
+    </controlador>
+
+ 
+
+    <!-- Controlador para el dialogo de cambio de legajo -->
+    <controlador nombre="CambiarLegajoDialogo">
+        <accion nombre="confirmar" clase="com.sta.biometric.acciones.ConfirmarCambioLegajoAction" icono="check" atajo-de-teclado="ENTER"/>
+        <accion nombre="cancelar" clase="org.openxava.actions.CancelAction" icono="close" atajo-de-teclado="ESCAPE"/>
+    </controlador>
+
+    <controlador nombre="PeriodoLiquidacion">
+        <accion nombre="confirmar" clase="com.sta.biometric.acciones.ConfirmarLiquidacionAction" icono="check" atajo-de-teclado="ENTER"/>
+        <accion nombre="cancelar" clase="org.openxava.actions.CancelAction" icono="close" atajo-de-teclado="ESCAPE"/>
+    </controlador>
+
+    <controlador nombre="DialogoCerrar">
+        <accion nombre="cerrar" clase="org.openxava.actions.CancelAction" atajo-de-teclado="ESCAPE"/>
+    </controlador>
+
+    <controlador nombre="DialogoDni">
+        <accion nombre="guardarYSalir" clase="com.sta.biometric.acciones.GuardarYCerrarDialogoAction" icono="content-save" atajo-de-teclado="ENTER"/>
+        <accion nombre="cancelar" clase="org.openxava.actions.CancelAction" icono="close" atajo-de-teclado="ESCAPE"/>
+    </controlador>
+
+    <controlador nombre="Feriados">
+        <hereda-de controlador="MiTypicalNoResetNoNavNoImport"/>
+
+        <accion nombre="new" icono="library-plus" modo="list" atajo-de-teclado="Control N" clase="com.sta.biometric.acciones.FeriadoAgregarNuevoFeriado">
+        </accion>
+        <accion nombre="save" icono="library-plus" modo="detail" atajo-de-teclado="Control N" clase="com.sta.biometric.acciones.FeriadoGuardarVolverLista">
+        </accion>
+        <accion nombre="actualizarFeriados" modo="list" clase="com.sta.biometric.acciones.ImportarFeriadosAnioActualAction" icono="calendar-check" confirmar="true">
+        </accion>
+    </controlador>
+
+    <controlador nombre="Licencia">
+        <hereda-de controlador="Print"/>
+        <accion nombre="EditarLicencia" oculta="true" clase="com.sta.biometric.acciones.EditarLicenciaCondicional" imagen="images/edit.gif">
+        </accion>
+        <accion nombre="AsignarLicencia" oculta="true" clase="com.sta.biometric.acciones.CrearLicenciaAction" icono="calendar-plus">
+        </accion>
+
+        <accion nombre="VerCalendario" oculta="true" clase="com.sta.biometric.acciones.LicenciasVerCalendarioAction" icono="calendar-month">
+        </accion>
+        <accion nombre="crearLista" oculta="true" clase="com.sta.biometric.acciones.LicenciasGenerateReportAction" icono="file-pdf">
+            <poner propiedad="type" valor="pdf" />
+        </accion>
+        <accion nombre="Guardar" oculta="true" clase="com.sta.biometric.acciones.LicenciaSaveAction">
+        </accion>
+
+        <accion nombre="ImprimirConstancia" oculta="true" clase="com.sta.biometric.acciones.LicenciaImprimirConstanciaAccion">
+        </accion>
+
+        <!-- Botón "Editar" en diálogo de consulta de licencia -->
+        <accion nombre="HabilitarEdicion" oculta="true" clase="com.sta.biometric.acciones.HabilitarEdicionLicenciaAction" icono="pencil">
+        </accion>
+
+        <!-- Botón "Guardar Modificaciones" después de habilitar edición -->
+        <accion nombre="GuardarModificaciones" oculta="true" clase="com.sta.biometric.acciones.LicenciaSaveAction">
+        </accion>
+
+        <!-- Acción personalizada de remoción con confirmación del navegador -->
+        <accion nombre="remove" oculta="true" clase="com.sta.biometric.acciones.LicenciaRemoveAction" confirmar="true">
+        </accion>
+
+    </controlador>
+
+
+
+
+    <controlador nombre="AuditoriaInformes">
+    
+        <accion nombre="informeDiario" clase="com.sta.biometric.acciones.MostrarDialogoInformeDiarioAction" modo="list" icono="file-chart">
+        </accion>
+        
+        <!-- Informe de licencias agrupadas por sucursal y mes -->
+        <accion nombre="informeLicenciasPorSucursal" clase="com.sta.biometric.acciones.ImprimirLicenciasPorSucursalAction" modo="list" icono="file-document-outline"/>
+        
+        <!-- Informe de licencias agrupadas por empleado y tipo -->
+        <accion nombre="informeLicenciasPorEmpleado" clase="com.sta.biometric.acciones.ImprimirLicenciasPorEmpleadoAction" modo="list" icono="file-account-outline"/>
+        
+        <!-- Acción para JasperReports -->
+        <accion nombre="myReports" modo="list" clase="org.openxava.actions.MyReportsAction" icono="printer"/>
+    </controlador>
+
+    <controlador nombre="AuditoriaGestionRegistros">
+        <accion nombre="importarFichadas" clase="com.sta.biometric.acciones.AbrirImportadorAction" icono="calendar-import" modo="list">
+        </accion>
+        <accion nombre="reevaluarJornadas" clase="com.sta.biometric.acciones.MostrarDialogoReevaluacionAction" icono="calendar-refresh" modo="list">
+        </accion>
+    </controlador>
+
+    <controlador nombre="AuditoriaRegistros">
+        <hereda-de controlador="Print"/>
+        <subcontrolador nombre="Registros" controlador="AuditoriaGestionRegistros" icono="database"/>
+        <subcontrolador nombre="Informes" controlador="AuditoriaInformes" icono="printer"/>
+
+        <accion nombre="FiltroMesActualFecha" oculta="true" clase="com.sta.biometric.acciones.FiltroMesActualFechaAction" al-iniciar="true" modo="list">
+        </accion>
+
+        <accion nombre="ajustarHorasPorTipo" oculta="true" clase="com.sta.biometric.acciones.AjustarHorasPorTipoAction" icono="pencil"/>
+
+        <!-- Acción para redondeo individual de horas -->
+        <accion nombre="redondeoIndividual" oculta="true" clase="com.sta.biometric.acciones.MostrarDialogoRedondeoIndividualAction" icono="clock-edit-outline">
+        </accion>
+
+    </controlador>
+
+    <controlador nombre="FechaInformeDiario">
+        <accion nombre="generar" clase="com.sta.biometric.acciones.GenerarInformeDiarioAction" icono="check" atajo-de-teclado="ENTER"/>
+        <accion nombre="cancelar" clase="org.openxava.actions.CancelAction" icono="close" atajo-de-teclado="ESCAPE"/>
+    </controlador>
+
+
+    <controlador nombre="AjusteHorasPorTipo">
+        <accion nombre="aplicar" clase="com.sta.biometric.acciones.AplicarAjusteHorasPorTipoAction" icono="check" atajo-de-teclado="ENTER"/>
+        <accion nombre="cancelar" clase="org.openxava.actions.CancelAction" icono="close" atajo-de-teclado="ESCAPE"/>
+    </controlador>
+
+    <!-- Controlador para diálogo de redondeo automático de horas -->
+    <controlador nombre="ConfiguracionRedondeo">
+        <accion nombre="aplicar" clase="com.sta.biometric.acciones.AplicarRedondeoMasivoAction" icono="check" atajo-de-teclado="ENTER"/>
+        <accion nombre="cancelar" clase="org.openxava.actions.CancelAction" icono="close" atajo-de-teclado="ESCAPE"/>
+    </controlador>
+
+    <!-- Controlador para diálogo de redondeo individual (desde AuditoriaRegistros) -->
+    <controlador nombre="ConfiguracionRedondeoIndividual">
+        <accion nombre="aplicar" clase="com.sta.biometric.acciones.AplicarRedondeoIndividualAction" icono="check" atajo-de-teclado="ENTER"/>
+        <accion nombre="cancelar" clase="org.openxava.actions.CancelAction" icono="close" atajo-de-teclado="ESCAPE"/>
+    </controlador>
+
+    <!-- Controlador para diálogo de reevaluación de jornadas (Recuperación) -->
+    <controlador nombre="DialogoReevaluacionController">
+        <accion nombre="ejecutar" clase="com.sta.biometric.acciones.EjecutarReevaluacionAction" icono="check" atajo-de-teclado="ENTER"/>
+        <accion nombre="cancelar" clase="org.openxava.actions.CancelAction" icono="close" atajo-de-teclado="ESCAPE"/>
+    </controlador>
+
+    <controlador nombre="ImportadorFichadas">
+        <accion nombre="importar" icono="check" clase="com.sta.biometric.acciones.EjecutarImportacionAction" atajo-de-teclado="ENTER">
+        </accion>
+        <accion nombre="cancelar" icono="close" clase="org.openxava.actions.CancelDialogAction" atajo-de-teclado="ESCAPE">
+        </accion>
+    </controlador>
+
+    <controlador nombre="Coordenadas">
+        <accion nombre="ObtenerCP" oculta="true" icono="home-map-marker" clase="com.sta.biometric.acciones.ObtenerCPGenericaAction">
+        </accion>
+        <accion nombre="verDireccion" oculta="true" icono="map-check-outline" clase="com.sta.biometric.acciones.VerMapaAction">
+        </accion>
+        <accion nombre="ObtenerCoordenadas" oculta="true" clase="com.sta.biometric.acciones.ObtenerCoordenadasGenericaAction">
+        </accion>
+        <accion nombre="guardarUbicacion" icono="content-save" clase="com.sta.biometric.acciones.GuardarUbicacionAction">
+        </accion>
+    </controlador>
+
+
+    <controlador nombre="LiquidacionJornadas">
+        <hereda-de controlador="Print"/>
+
+        <accion nombre="nuevaLiquidacion" oculta="true" clase="com.sta.biometric.acciones.MostrarDialogoLiquidacionAction" icono="plus">
+        </accion>
+
+
+        <accion nombre="eliminarLiquidacion" modo="list" clase="org.openxava.actions.DeleteSelectedInCollectionAction" confirmar="true" icono="delete" en-cada-fila="true">
+        </accion>
+
+        <accion nombre="Recalcular" modo="list" clase="com.sta.biometric.acciones.RecalcularLiquidacionAction" icono="refresh" confirmar="true" en-cada-fila="true">
+        </accion>
+
+
+
+        <accion nombre="cambiarEstado" modo="detail" clase="com.sta.biometric.acciones.CambiarEstadoLiquidacionAction" confirmar="true"/>
+
+        <accion nombre="verJornadas" modo="list" clase="com.sta.biometric.acciones.VerJornadasLiquidacionAction" icono="eye" en-cada-fila="true"/>
+
+        <accion nombre="CerrarLiquidacion" oculta="true" clase="com.sta.biometric.acciones.CerrarLiquidacionAction" icono="lock" confirmar="true">
+        </accion>
+
+        <!-- Acción para aplicar redondeo automático masivo -->
+        <accion nombre="aplicarRedondeo" oculta="true" clase="com.sta.biometric.acciones.MostrarDialogoRedondeoAction" icono="clock-edit-outline">
+        </accion>
+
+        <!-- Acción para revertir redondeo masivo -->
+        <accion nombre="revertirRedondeo" oculta="true" clase="com.sta.biometric.acciones.RevertirRedondeoMasivoAction" icono="undo" confirmar="true">
+        </accion>
+
+        <!-- Acción para exportar jornadas del período a Excel (solo vista SoloJornadas) -->
+        <accion nombre="exportarJornadasExcel" oculta="true" clase="com.sta.biometric.acciones.ExportarJornadasExcelAction" icono="file-excel" modo="list">
+        </accion>
+    </controlador>
+
+    <!-- ============================================================ -->
+    <!-- CONTROLADOR PARA PAPELERA DE PERSONAL                        -->
+    <!-- ============================================================ -->
+
+    <!-- 
+    Controlador para el módulo de Papelera de Personal.
+    Solo permite restaurar registros (no borrado permanente debido a FK). 
+    -->
+    <controlador nombre="PapeleraPersonal">
+
+        <!-- Acción para restaurar registros seleccionados -->
+        <accion nombre="restaurar" modo="list" icono="restore" procesar-elementos-seleccionados="true" clase="com.sta.biometric.acciones.EliminarPersonalParaPapeleraAction" confirmar="true">
+            <poner propiedad="restaurar" valor="true" />
+        </accion>
+
+        <!-- Acción para volver al módulo de Personal (Nómina) -->
+        <accion nombre="volver_a_Nomina" modo="list" icono="arrow-left" clase="com.sta.biometric.acciones.VolverAPersonalAction"/>
+    </controlador>
+
+    <controlador nombre="DispositivoBiometrico">
+        <hereda-de controlador="Typical"/>
+        <accion nombre="exportarPersonalCSV" modo="list" clase="com.sta.biometric.acciones.ExportarPersonalCsvAction" icono="file-export" procesar-elementos-seleccionados="true"/>
+    </controlador>
+
+</controladores>

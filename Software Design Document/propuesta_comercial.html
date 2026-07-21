@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Propuesta Comercial Premium - STA Biometric</title>
+    <style>
+        @page { size: A4; margin: 2cm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background: white; }
+        .container { max-width: 210mm; margin: 0 auto; padding: 20px; }
+        .cover-page { height: 297mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(135deg, #0066cc 0%, #004999 100%); color: white; page-break-after: always; }
+        .cover-page h1 { font-size: 48px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px; }
+        .cover-page h2 { font-size: 32px; margin-bottom: 40px; font-weight: 300; }
+        .cover-page .subtitle { font-size: 18px; margin-top: 40px; font-style: italic; }
+        h1 { color: #0066cc; font-size: 36px; margin: 40px 0 20px 0; page-break-before: always; }
+        h2 { color: #004999; font-size: 28px; margin: 30px 0 15px 0; border-bottom: 3px solid #0066cc; padding-bottom: 10px; }
+        h3 { color: #0066cc; font-size: 22px; margin: 25px 0 12px 0; }
+        p { margin: 10px 0; text-align: justify; }
+        ul { margin: 10px 0 10px 30px; }
+        li { margin: 5px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #0066cc; color: white; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .success { background-color: #d4edda; padding: 15px; border-left: 4px solid #28a745; margin: 20px 0; }
+        .info { background-color: #d1ecf1; padding: 15px; border-left: 4px solid #17a2b8; margin: 20px 0; }
+        .highlight { background-color: #e2e3e5; padding: 15px; border-left: 4px solid #383d41; margin: 20px 0; font-weight:bold; }
+        .important { background-color: #f8d7da; padding: 15px; border-left: 4px solid #dc3545; margin: 20px 0; font-weight: bold; text-align: center; }
+        .page-break { page-break-before: always; }
+        @media print { body { background: white; } }
+    </style>
+</head>
+<body>
+    <div class="cover-page">
+        <h1>PROPUESTA COMERCIAL PREMIUM</h1>
+        <h2>STA Biometric</h2>
+        <p style="font-size: 24px; margin: 20px 0;">La Plataforma Integral de Auditoría y Costeo de Nómina</p>
+        <div class="subtitle">
+            <p>Arquitectura Java Enterprise & OpenXava 7.5</p>
+            <p>Gestión Paramétrica de Capital Humano</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>RESUMEN EJECUTIVO</h1>
+        <p><strong>STA Biometric</strong> es la iteración de software de grado empresarial desarrollada para gobernar el tiempo y la asistencia. Distanciándose de un "reloj convencional", nuestra solución es una <strong>extensa plataforma analítica y de pre-liquidación financiera</strong> basada en micro-reglas de exactitud matemática.</p>
+        
+        <div class="page-break"></div>
+        
+        <h1>1. CONTEXTO Y PROBLEMÁTICA</h1>
+        <h2>La Fuga Operativa Silenciosa</h2>
+        <p>Las organizaciones invierten montos masivos en salarios, sin embargo, el verdadero retorno de inversión se diluye por:</p>
+        <ul>
+            <li><strong>Fugas por Redondeo:</strong> El pago indebido por incapacidad técnica de descontar centésimas de ausentismo o llegadas tarde de manera volumétrica.</li>
+            <li><strong>Saturación de Nómina:</strong> Sus ejecutivos de RRHH desperdician el 30% del mes cotejando, cruzando reglas de feriados o acomodando partes médicos de forma manual.</li>
+            <li><strong>Vacío Legal:</strong> Fichajes adulterados y modificaciones de planillas inconsistentes.</li>
+        </ul>
+        
+        <div class="success">
+            <strong>Nuestra Solución:</strong> La total inmutabilidad de los datos, reglas calculadas concurrentemente y un flujo de información 100% digital e interoperable provisto por STA Biometric.
+        </div>
+        
+        <div class="page-break"></div>
+        
+        <h1>2. CAPACIDADES DE INGENIERÍA</h1>
+        <h2>Por Qué Nuestra Arquitectura es Diferente</h2>
+        
+        <div class="info">
+            <p><strong>Fundamentos Tecnológicos:</strong></p>
+            <ul>
+                <li><strong>Java 17 & OpenXava 7.5:</strong> Estabilidad MVC y mantenibilidad.</li>
+                <li><strong>Procesamiento en Lote (Quartz Scheduler):</strong> Las tareas críticas como abrir los fichajes diarios y cerrar la jornada de miles de empleados se realizan a medianoche a cargo del robot transaccional, sin acción manual.</li>
+                <li><strong>Interfaces Nativas Móviles:</strong> API Jersey (JAX-RS) soportando Auth JWT criptográfica anti-fraudes. Reacciona a transacciones de App Móvil, lectores biométricos IP o GPS.</li>
+            </ul>
+        </div>
+        
+        <div class="page-break"></div>
+
+        <h1>3. MÓDULOS DE VALOR AGREGADO</h1>
+        <h2>Motor de Snapshot Financiero y Auditoría</h2>
+        <p>Cuando un operario ficha hoy, <strong>STA Biometric congela el valor monetario de su hora, su bonificación, y la tolerancia legal del turno exacto en ese nanosegundo.</strong> Si su convenio colectivo se actualiza mañana, el reporte retroactivo del empleado seguirá mostrando matemáticamente lo que correspondía aquel día. Transparencia total, garantizada por las estructuras de `AuditoriaRegistros` y `LiquidacionJornadas`.</p>
+
+        <h2>Control Semántico de "Falta Fantasma"</h2>
+        <p>Evite las alarmas innecesarias. Gracias al cruce relacional, si su empleado se encuentra bajo una <em>Licencia Pagada (`conGoce = true`)</em>, el sistema auto-imputará los minutos como trabajados sin requerir fichada alguna, justificándolo en pantalla mediante su <strong>Semáforo de Gestión</strong> en colores, de vistazo instantáneo.</p>
+
+        <h2>Dashboard Biométrico de Mando</h2>
+        <p>Encuentre sus métricas cruciales al iniciar sesión: Quienes deben estar, los "En Curso", ausencias proyectadas y picos o cuellos de botella que impactarán a la producción hoy mismo, generados de forma nativa e integrada.</p>
+
+        <div class="page-break"></div>
+
+        <h1>4. RETORNO DE INVERSIÓN (ROI)</h1>
+        <h2>Caso: Pyme Operativa (250 Operarios)</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Escenario Actual</th>
+                    <th>Costo Oculto Anual</th>
+                    <th>Mitigación STA</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Errores Tipográficos</td>
+                    <td>~USD 20.000</td>
+                    <td><strong>USD 0</strong> (100% Sistémico y Automático)</td>
+                </tr>
+                <tr>
+                    <td>Costo Humano de Carga (Saturación)</td>
+                    <td>~USD 35.000</td>
+                    <td><strong>Reducción del 95%</strong> (Con cron-jobs de Cierre nocturno y Reportes XLS automatizados)</td>
+                </tr>
+                <tr>
+                    <td>Juicios Laborales y Controversias</td>
+                    <td>Variable</td>
+                    <td>Evidencias criptográficas, logs de inmutabilidad transaccional y DeviceIDs únicos.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="important">
+            <p style="font-size: 22px;">Transforme sus horas perdidas en capital puro. Cierre nóminas complejas y precisas en 3 clicks, en lugar de 3 días.</p>
+        </div>
+
+    </div>
+</body>
+</html>

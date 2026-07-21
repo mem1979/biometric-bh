@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayuda - Nomina (Personal) | STA.RH</title>
+    <link rel="stylesheet" href="help.css">
+</head>
+
+<body>
+    <div class="help-container">
+
+        <header class="help-header">
+            <h1>👥 Nomina (Personal)</h1>
+            <p>Gestion integral de empleados - Datos personales, laborales, turnos, honorarios y desempeno</p>
+        </header>
+
+        <!-- Descripcion General -->
+        <section class="section">
+            <h2>📖 Descripcion General</h2>
+            <p>
+                El modulo de <strong>Nomina</strong> es el centro de gestion de empleados del sistema STA.RH.
+                Aqui se administra toda la informacion relacionada con cada trabajador:
+            </p>
+            <ul>
+                <li><strong>Datos Personales:</strong> Nombre, DNI, CUIL, fecha de nacimiento, foto, direccion</li>
+                <li><strong>Informacion Laboral:</strong> Sucursal, puesto, fecha de inicio, credenciales</li>
+                <li><strong>Jornadas:</strong> Turnos asignados con horarios fijos o rotativos</li>
+                <li><strong>Honorarios:</strong> Valor hora, porcentajes de extras y especiales</li>
+                <li><strong>Licencias:</strong> Historial de licencias con resumen anual</li>
+                <li><strong>Desempeno:</strong> Notas y evaluaciones del empleado</li>
+                <li><strong>Liquidaciones:</strong> Consolidado de horas trabajadas por periodo</li>
+            </ul>
+        </section>
+
+        <!-- Pestanas del Formulario -->
+        <section class="section">
+            <h2>📋 Estructura del Formulario</h2>
+            <p>El formulario de empleado se organiza en varias pestanas:</p>
+
+            <!-- Screenshot: Barra de secciones -->
+            <figure class="screenshot">
+                <img src="img/personal_barra_secciones.png" alt="Barra de secciones del formulario">
+                <figcaption>Navegacion por pestanas: Datos Personales, Datos Laborales, Licencias, Liquidacion de
+                    Jornadas y Notas de Desempeno</figcaption>
+            </figure>
+
+            <h3>1. Informacion Personal</h3>
+            <p>Esta seccion contiene los datos basicos del empleado:</p>
+
+            <!-- Screenshot: Datos personales -->
+            <figure class="screenshot">
+                <img src="img/personal_info_personal.png" alt="Formulario de Informacion Personal">
+                <figcaption>Formulario de datos personales: apellido, nombres, fecha de nacimiento, nacionalidad, DNI y
+                    CUIL</figcaption>
+            </figure>
+
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Apellido/Nombres</strong></td>
+                        <td>Nombre completo del empleado</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fecha Nacimiento</strong></td>
+                        <td>Calcula automaticamente edad y proximo cumpleaños</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Nacionalidad</strong></td>
+                        <td>Pais de origen (por defecto: Argentina)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Estado Civil</strong></td>
+                        <td>Soltero, Casado, Divorciado, etc.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tipo/Numero (DNI)</strong></td>
+                        <td>Documento Nacional de Identidad (unico en el sistema)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CUIL</strong></td>
+                        <td>Codigo Unico de Identificacion Laboral (XX-XXXXXXXX-X)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="tip">
+                <p class="tip-title">💡 Consulta ANSES</p>
+                <p>
+                    Junto al campo CUIL hay un enlace <strong>"Ir ANSES"</strong> que permite abrir directamente
+                    la consulta de ANSES para verificar los datos del empleado.
+                </p>
+            </div>
+
+            <h4>Direccion y Contacto</h4>
+
+            <!-- Screenshot: Direccion y Contacto -->
+            <figure class="screenshot">
+                <img src="img/personal_direccion_contacto.png" alt="Formulario de Direccion y Contacto">
+                <figcaption>Seccion de direccion (provincia, partido, localidad, calle) y datos de contacto (celular,
+                    telefono, email)</figcaption>
+            </figure>
+
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Provincia/Partido/Localidad</strong></td>
+                        <td>Ubicacion geografica con selectores en cascada</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Calle/Numero/Piso</strong></td>
+                        <td>Direccion completa del domicilio</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Codigo Postal</strong></td>
+                        <td>Se puede obtener automaticamente con el boton de busqueda</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Celular</strong></td>
+                        <td>Numero de telefono movil con codigo de area</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Telefono</strong></td>
+                        <td>Linea fija (opcional)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Correo Electronico</strong></td>
+                        <td>Email de contacto del empleado</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Web</strong></td>
+                        <td>Sitio web o red social (opcional)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Notas y Documentacion</h4>
+
+            <!-- Screenshot: Notas y Documentacion -->
+            <figure class="screenshot">
+                <img src="img/personal_notas_documentacion.png" alt="Notas Personales y Documentacion">
+                <figcaption>Area de notas personales y carga de documentacion adjunta</figcaption>
+            </figure>
+
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Notas Personale</strong></td>
+                        <td>Campo de texto libre para observaciones adicionales sobre el empleado</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Documentacion</strong></td>
+                        <td>Archivos adjuntos (contratos, certificados, etc.) - Arrastrar o explorar para cargar</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Foto</strong></td>
+                        <td>Imagen del empleado (max 200KB) - aparece en el panel lateral</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>2. Informacion Laboral</h3>
+            <p>Esta pestana contiene los datos de empleo y configuracion del empleado:</p>
+
+            <h4>Credenciales</h4>
+
+            <!-- Screenshot: Credenciales -->
+            <figure class="screenshot">
+                <img src="img/personal_credenciales.png" alt="Formulario de Credenciales">
+                <figcaption>Seccion de credenciales: legajo, estado de habilitacion, usuario generado, contrasena e ID
+                    de dispositivo</figcaption>
+            </figure>
+
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Legajo</strong></td>
+                        <td>Codigo unico del empleado (ej: A5), debe coincidir con el lector biometrico</td>
+                    </tr>
+                    <tr>
+                        <td><strong>HABILITADO</strong></td>
+                        <td>Checkbox que indica si el empleado esta activo en el sistema</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Crea usuario</strong></td>
+                        <td>Se genera automaticamente (ej: JPérez@A5)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Contrasena</strong></td>
+                        <td>Encriptada, puede ser blanqueada por el administrador con el boton ⊘</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ID Dispositivo</strong></td>
+                        <td>Identificador del celular para la app movil, se blanquea con el boton ⊘</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="warning">
+                <p class="warning-title">⚠️ Blanquear Credenciales</p>
+                <p>
+                    Los botones ⊘ junto a <strong>Contrasena</strong> e <strong>ID Dispositivo</strong> permiten
+                    blanquear estos valores. Util cuando el empleado olvida su contrasena o cambia de celular.
+                </p>
+            </div>
+
+            <h4>Funcion</h4>
+
+            <!-- Screenshot: Funcion -->
+            <figure class="screenshot">
+                <img src="img/personal_funcion.png" alt="Formulario de Funcion">
+                <figcaption>Datos de funcion: sucursal, fecha de inicio, antiguedad calculada y puesto</figcaption>
+            </figure>
+
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Sucursal</strong></td>
+                        <td>Ubicacion donde trabaja el empleado (ej: CENTRAL)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Inicio de Actividades</strong></td>
+                        <td>Fecha de ingreso a la empresa</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Antiguedad</strong></td>
+                        <td>Calculada automaticamente (ej: 5 años y 7 dias)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Puesto</strong></td>
+                        <td>Cargo o funcion (ej: OP. ENCARGADO DE PLANTA)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Honorarios</h4>
+
+            <!-- Screenshot: Honorarios -->
+            <figure class="screenshot">
+                <img src="img/personal_honorarios.png" alt="Formulario de Honorarios">
+                <figcaption>Configuracion de valores hora: normal, extra (50%) y especial (100%)</figcaption>
+            </figure>
+
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Valor Hora</strong></td>
+                        <td>Valor monetario de la hora normal (ej: $1.000,00)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>% Hora Extra</strong></td>
+                        <td>Porcentaje adicional para horas extras (ej: 50%)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Valor hora extra</strong></td>
+                        <td>Calculado automaticamente (ej: $1.500,00)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>% Hora Especial</strong></td>
+                        <td>Porcentaje adicional para feriados (ej: 100%)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Valor hora especial</strong></td>
+                        <td>Calculado automaticamente (ej: $2.000,00)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info">
+                <p class="info-title">💰 Tecnologia Snapshot</p>
+                <p>
+                    Cada vez que se genera un registro de auditoria, el sistema "fotografia" los valores
+                    monetarios vigentes. Si el sueldo cambia despues, los registros anteriores mantienen
+                    los valores historicos correctos.
+                </p>
+            </div>
+
+            <h4>Jornadas</h4>
+
+            <!-- Screenshot: Jornadas -->
+            <figure class="screenshot">
+                <img src="img/personal_jornadas.png" alt="Seccion de Jornadas">
+                <figcaption>Lista de jornadas asignadas con codigo de turno, detalle de horarios y fechas de vigencia
+                </figcaption>
+            </figure>
+
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>CON PAUSAS</strong></td>
+                        <td>Checkbox que indica si el empleado puede registrar pausas durante la jornada</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Codigo de turno</strong></td>
+                        <td>Identificador del turno asignado (ej: TM.01)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Detalle jornada</strong></td>
+                        <td>Dias de la semana, horario y tolerancia (ej: Lu.Ma.Mi.Ju.Vi. de 07:00 a 16:00 Hs /Tol.5min)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fecha inicio</strong></td>
+                        <td>Desde cuando aplica este turno</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fecha fin</strong></td>
+                        <td>Hasta cuando aplica (vacio = turno indefinido/rotativo)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="tip">
+                <p class="tip-title">💡 Nuevo Turno</p>
+                <p>
+                    Use el boton <strong>Nuevo</strong> para agregar jornadas adicionales.
+                    Si asigna multiples turnos sin fecha fin, rotaran semanalmente.
+                </p>
+            </div>
+        </section>
+
+        <!-- Turnos y Jornadas -->
+        <section class="section">
+            <h2>🕐 Sistema de Turnos y Jornadas</h2>
+            <p>
+                El sistema de jornadas permite asignar turnos de forma flexible a cada empleado.
+                Los turnos se crean en el modulo <strong>Turnos Horarios</strong> y luego se asignan
+                al personal desde la seccion <strong>Jornadas</strong>.
+            </p>
+
+            <h3>Asignar Jornada al Empleado</h3>
+            <p>
+                Para asignar un turno, use el boton <strong>Nuevo</strong> en la seccion "Jornadas Asignadas".
+                Puede seleccionar un turno existente, editarlo o crear uno nuevo.
+            </p>
+
+            <!-- Screenshot: Dialogo asignar jornada -->
+            <figure class="screenshot">
+                <img src="img/personal_asignar_jornada.png" alt="Dialogo para asignar jornada">
+                <figcaption>Dialogo de asignacion: seleccionar turno existente, editar, crear nuevo o añadir a lista
+                </figcaption>
+            </figure>
+
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Turno</strong></td>
+                        <td>Seleccionar de la lista desplegable (turnos ya creados)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>🔍 (Buscar)</strong></td>
+                        <td>Boton para buscar y seleccionar un turno del catalogo</td>
+                    </tr>
+                    <tr>
+                        <td><strong>✏️ (Editar)</strong></td>
+                        <td>Modificar el turno seleccionado (abre formulario completo)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>🗑️ (Borrar)</strong></td>
+                        <td>Desvincular el turno de esta asignacion</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Añadir</strong></td>
+                        <td>Crear un nuevo turno directamente desde aqui</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fecha inicio</strong></td>
+                        <td>Desde cuando aplica este turno (requerido)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fecha fin</strong></td>
+                        <td>Hasta cuando aplica (vacio = turno indefinido)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rotativa</strong></td>
+                        <td>Indica si participa en rotacion semanal</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Crear/Editar Turno (Turnos Horarios)</h3>
+            <p>
+                Al presionar <strong>Añadir</strong> o <strong>Editar</strong>, se abre el formulario
+                completo para configurar un turno:
+            </p>
+
+            <!-- Screenshot: Crear turno -->
+            <figure class="screenshot">
+                <img src="img/turnos_crear_horario.png" alt="Formulario para crear turno">
+                <figcaption>Formulario de creacion de turno: nombre, tolerancia, bonificacion y horarios por dia de la
+                    semana</figcaption>
+            </figure>
+
+            <h4>Seccion Jornada</h4>
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Turno nombre</strong></td>
+                        <td>Tipo de turno: MAÑANA, TARDE, NOCHE, ESPECIAL</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tolerancia</strong></td>
+                        <td>Minutos de tolerancia para llegadas/salidas (ej: 5 min)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Porcentaje bonificacion</strong></td>
+                        <td>Bonificacion adicional para este turno (ej: 15% turno noche)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Codigo</strong></td>
+                        <td>Se genera automaticamente: TM.01, TT.02, TN.01 segun tipo</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Horas</strong></td>
+                        <td>Suma semanal calculada automaticamente (ej: 0 HS. 0 MIN.)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Seccion DIAS</h4>
+            <p>Configure cada dia de la semana marcando el checkbox y definiendo los horarios:</p>
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Checkbox dia</strong></td>
+                        <td>Activa/desactiva el dia como laboral</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Hora entrada</strong></td>
+                        <td>Hora de ingreso para ese dia</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Hora salida</strong></td>
+                        <td>Hora de egreso para ese dia</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Horas dia</strong></td>
+                        <td>Duracion calculada automaticamente (ej: 9 Hs. 0 Min.)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info">
+                <p class="info-title">ℹ️ Turnos Nocturnos</p>
+                <p>
+                    El sistema soporta turnos que cruzan la medianoche. Por ejemplo, entrada 22:00 y
+                    salida 06:00 calcula correctamente 8 horas de trabajo.
+                </p>
+            </div>
+
+            <h4>Detalle Jornada Horas</h4>
+            <p>
+                Resumen compacto que agrupa dias con el mismo horario. Ejemplo:
+                <code>Lu.Ma.Mi.Ju.Vi. de 07:00 a 16:00 Hs /Tol.5min /Bon.0%</code>
+            </p>
+
+            <h3>Tipos de Asignacion</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Fecha Fin</th>
+                        <th>Descripcion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="status-badge status-blue">Turno Fijo</span></td>
+                        <td>Vacia (null)</td>
+                        <td>Un solo turno asignado indefinidamente. Trabaja siempre el mismo horario.</td>
+                    </tr>
+                    <tr>
+                        <td><span class="status-badge status-purple">Turno Rotativo</span></td>
+                        <td>Vacia (null)</td>
+                        <td>Multiples turnos sin fecha fin que rotan semanalmente (ej: semana 1 manana, semana 2 tarde).
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="status-badge status-yellow">Turno Programado</span></td>
+                        <td>Definida</td>
+                        <td>Turno temporal con periodo especifico (ej: del 15/12 al 31/12 por temporada).</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="tip">
+                <p class="tip-title">💡 Prioridad de Turnos</p>
+                <p>
+                    Los <strong>turnos programados</strong> (con fecha fin definida) tienen prioridad sobre los
+                    rotativos.
+                    Esto permite asignar turnos temporales que "sobreescriben" la rotacion normal sin modificarla.
+                </p>
+            </div>
+
+            <div class="warning">
+                <p class="warning-title">⚠️ Codigo Unico</p>
+                <p>
+                    Cada turno genera un codigo unico automaticamente (TM.01, TT.02, etc.).
+                    El prefijo indica el tipo: <strong>TM</strong>=Mañana, <strong>TT</strong>=Tarde,
+                    <strong>TN</strong>=Noche, <strong>TE</strong>=Especial. Maximo 99 turnos por tipo.
+                </p>
+            </div>
+        </section>
+
+        <!-- Licencias -->
+        <section class="section">
+            <h2>📄 Pestana LICENCIAS</h2>
+            <p>
+                Gestion completa de licencias, ausencias justificadas y permisos del empleado.
+            </p>
+
+            <h3>Listado de Licencias</h3>
+
+            <!-- Screenshot: Lista de licencias -->
+            <figure class="screenshot">
+                <img src="img/personal_licencias_lista.png" alt="Lista de licencias del empleado">
+                <figcaption>Lista de licencias con botones de accion: Asignar licencia, Ver calendario, Crear lista
+                </figcaption>
+            </figure>
+
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Tipo de Licencia</strong></td>
+                        <td>Vacaciones anuales, Enfermedad, Maternidad, etc.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Desde / Hasta</strong></td>
+                        <td>Fechas de inicio y fin de la licencia</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dias</strong></td>
+                        <td>Cantidad de dias computados</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Justificada</strong></td>
+                        <td>Indica si la licencia tiene certificado o documentacion</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Resumen Anual de Licencias</h3>
+
+            <!-- Screenshot: Resumen anual -->
+            <figure class="screenshot">
+                <img src="img/personal_licencias_resumen.png" alt="Resumen anual de licencias">
+                <figcaption>Tabla resumida por tipo de licencia: dias utilizados y dias restantes disponibles
+                </figcaption>
+            </figure>
+
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Tipo</strong></td>
+                        <td>Categoria de la licencia (ej: Vacaciones anuales, Enfermedad)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dias</strong></td>
+                        <td>Total de dias utilizados en el ano</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dias restantes</strong></td>
+                        <td>Dias disponibles segun la ley y antiguedad</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Grafico de Asistencia Anual</h3>
+
+            <!-- Screenshot: Grafico anual -->
+            <figure class="screenshot">
+                <img src="img/personal_resumen_anual.png" alt="Grafico de resumen anual de asistencia">
+                <figcaption>Grafico de barras mensual: Jornadas completas, incompletas, licencias, ausentes y feriados
+                    trabajados</figcaption>
+            </figure>
+
+            <p>El grafico muestra por cada mes:</p>
+            <ul>
+                <li><span class="status-badge status-blue">Completas</span> - Jornadas con horario cumplido</li>
+                <li><span class="status-badge" style="background:#f97316;color:white">Incompletas</span> - Jornadas con
+                    horario parcial</li>
+                <li><span class="status-badge status-purple">Licencias</span> - Dias con licencia asignada</li>
+                <li><span class="status-badge status-red">Ausentes</span> - Dias sin registro de asistencia</li>
+                <li><span class="status-badge status-green">Feriados trabajados</span> - Trabajo en dias feriados</li>
+            </ul>
+
+            <h3>Dialogo Asignar Licencia</h3>
+
+            <!-- Screenshot: Asignar licencia -->
+            <figure class="screenshot">
+                <img src="img/personal_asignar_licencia.png" alt="Dialogo para asignar licencia">
+                <figcaption>Formulario de asignacion de licencia con tipo, computo de dias, fechas, certificado y
+                    observaciones</figcaption>
+            </figure>
+
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Tipo de Licencia</strong></td>
+                        <td>Seleccionar del catalogo (Vacaciones anuales, Enfermedad, etc.)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Computo de Dias</strong></td>
+                        <td>DIAS HABILES o DIAS CORRIDOS segun corresponda</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Desde / Hasta</strong></td>
+                        <td>Rango de fechas de la licencia</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dias / Disponibles</strong></td>
+                        <td>Cantidad calculada y dias disponibles restantes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Certificado</strong></td>
+                        <td>Cargar archivo de certificado medico o documentacion</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Justificada</strong></td>
+                        <td>Marcar si la licencia esta debidamente justificada</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Observaciones</strong></td>
+                        <td>Detalle adicional (ej: referencia a LCT Art. 150)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info">
+                <p class="info-title">ℹ️ Vacaciones segun LCT Art. 150</p>
+                <p>
+                    Los dias de vacaciones varian segun antiguedad: menos de 6 meses (proporcional),
+                    6m-5a (14 dias), 5-10a (21), 10-20a (28), mas de 20a (35).
+                    Convenios colectivos pueden ampliar hasta 40 dias.
+                </p>
+            </div>
+        </section>
+
+        <!-- Liquidacion -->
+        <section class="section">
+            <h2>💵 Pestana LIQUIDACION JORNADAS</h2>
+            <p>
+                Consolidado de horas trabajadas por periodo con calculo de valores monetarios.
+            </p>
+
+            <h3>Que contiene cada liquidacion</h3>
+            <ul>
+                <li><strong>Periodo Desde/Hasta:</strong> Rango de fechas liquidadas</li>
+                <li><strong>Estado:</strong> Abierta, Cerrada</li>
+                <li><strong>Horas Normales:</strong> Total de horas dentro del turno</li>
+                <li><strong>Horas Extras:</strong> Horas fuera del horario (antes/despues)</li>
+                <li><strong>Horas Especiales:</strong> Horas en feriados o dias no laborales</li>
+                <li><strong>Monto Total:</strong> Calculo monetario total del periodo</li>
+            </ul>
+
+            <h3>Acciones</h3>
+            <ul>
+                <li><strong>Nueva Liquidacion:</strong> Crear liquidacion para un nuevo periodo</li>
+                <li><strong>Recalcular:</strong> Actualizar calculos de una liquidacion abierta</li>
+                <li><strong>Cerrar Liquidacion:</strong> Marcar como cerrada (no editable)</li>
+            </ul>
+        </section>
+
+        <!-- Desempeno -->
+        <section class="section">
+            <h2>⭐ Pestana INCIDENCIAS Y OBSERVACIONES</h2>
+            <p>
+                Seguimiento del desempeno del empleado mediante notas y calificaciones.
+            </p>
+
+            <h3>Evaluacion de Desempeno Anual</h3>
+            <p>
+                Muestra automaticamente el promedio de calificaciones del ano actual:
+            </p>
+            <ul>
+                <li><span class="status-badge status-green">EXCELENTE</span> - Desempeno sobresaliente</li>
+                <li><span class="status-badge status-blue">BUENO</span> - Cumple con las expectativas</li>
+                <li><span class="status-badge status-yellow">REGULAR</span> - Necesita mejorar</li>
+                <li><span class="status-badge status-red">DEFICIENTE</span> - Requiere atencion urgente</li>
+            </ul>
+
+            <h3>Notas de Desempeno</h3>
+            <p>
+                Lista cronologica de observaciones sobre el empleado, cada una con:
+            </p>
+            <ul>
+                <li><strong>Autor:</strong> Quien registro la nota</li>
+                <li><strong>Fecha/Hora:</strong> Momento del registro</li>
+                <li><strong>Calificacion:</strong> Positiva, Neutra o Negativa</li>
+                <li><strong>Contenido:</strong> Descripcion de la observacion</li>
+            </ul>
+
+            <h3>Informe Anual</h3>
+            <p>
+                Boton para generar un informe completo del empleado incluyendo:
+                asistencia mensual, horas trabajadas, licencias y evaluacion de desempeno.
+            </p>
+        </section>
+
+        <!-- Direccion y Mapa -->
+        <section class="section">
+            <h2>📍 Direccion y Geolocalizacion</h2>
+            <p>
+                El sistema permite registrar la direccion completa del empleado con
+                coordenadas geograficas para visualizacion en mapa.
+            </p>
+
+            <h3>Datos de Direccion</h3>
+            <ul>
+                <li>Calle y numero</li>
+                <li>Localidad</li>
+                <li>Partido/Departamento</li>
+                <li>Provincia</li>
+                <li>Codigo Postal</li>
+                <li>Coordenadas GPS (latitud, longitud)</li>
+            </ul>
+
+            <h3>Acciones de Geolocalizacion</h3>
+            <ul>
+                <li><strong>Obtener CP:</strong> Buscar codigo postal automaticamente</li>
+                <li><strong>Obtener Coordenadas:</strong> Calcular lat/long desde la direccion</li>
+                <li><strong>Ver Mapa:</strong> Visualizar ubicacion en mapa interactivo</li>
+            </ul>
+        </section>
+
+        <!-- Acciones del Modulo -->
+        <section class="section">
+            <h2>🔧 Acciones del Modulo</h2>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Accion</th>
+                        <th>Descripcion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Nuevo</strong></td>
+                        <td>Crear un nuevo empleado (abre vista simplificada)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Guardar</strong></td>
+                        <td>Guardar cambios en el empleado actual</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Eliminar</strong></td>
+                        <td>Eliminar empleado (si no tiene registros asociados)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Imprimir Ficha</strong></td>
+                        <td>Generar PDF con ficha de datos del empleado</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Informe Anual</strong></td>
+                        <td>Reporte completo de asistencia del ano</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Empleados Inactivos -->
+        <section class="section">
+            <h2>🚫 Empleados Inactivos</h2>
+            <p>
+                Cuando un empleado deja de trabajar, se debe marcar como <strong>Inactivo</strong>
+                en lugar de eliminarlo. Esto:
+            </p>
+            <ul>
+                <li>Preserva todo el historial de asistencia</li>
+                <li>Mantiene las liquidaciones anteriores</li>
+                <li>Impide nuevos registros de fichadas</li>
+                <li>Muestra al empleado con estilo diferenciado en la lista</li>
+            </ul>
+
+            <div class="info">
+                <p class="info-title">ℹ️ Legajo de Inactivos</p>
+                <p>
+                    Al desactivar un empleado, el sistema agrega el prefijo "x-" al legajo,
+                    liberando el codigo original para reutilizacion si fuera necesario.
+                </p>
+            </div>
+        </section>
+
+        <!-- Modulos Relacionados -->
+        <section class="section">
+            <h2>🔗 Modulos Relacionados</h2>
+            <ul>
+                <li><strong>Panel de Asistencia</strong> - Ver estado diario de todos los empleados</li>
+                <li><strong>Auditoria de Registros</strong> - Ver/ajustar fichadas individuales</li>
+                <li><strong>Turnos</strong> - Configurar horarios disponibles</li>
+                <li><strong>Sucursales</strong> - Gestionar ubicaciones de trabajo</li>
+                <li><strong>Tipos de Licencia</strong> - Configurar categorias de licencias</li>
+            </ul>
+        </section>
+
+        <footer class="help-footer">
+            <p><strong>STA.RH</strong> - Sistema de Gestion de Recursos Humanos</p>
+            <p>S.T.A. - Soluciones Tecnologicas de Avanzada</p>
+            <a href="index.html" class="back-link">← Volver al indice de ayuda</a>
+        </footer>
+
+    </div>
+</body>
+
+</html>

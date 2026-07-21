@@ -1,0 +1,701 @@
+/**
+ * =============================================================================
+ * CUSTOM.CSS - Estilos personalizados para STARH Biometric
+ * =============================================================================
+ * 
+ * Este archivo contiene personalizaciones de estilos para el proyecto STARH.
+ * Se carga después del tema base (pastel.css) y lo sobreescribe donde sea necesario.
+ * 
+ * SECCIONES:
+ * 1. Indicador Beta
+ * 2. Layout y Espaciado
+ * 3. Animaciones
+ * 4. Mensajes del Sistema
+ * 5. Pestañas y Secciones
+ * 6. Estilos de Filas (Row Styles)
+ * 7. Estados de Auditoría (Colores Pastel)
+ * 
+ * NOTA: Las variables CSS (--variable-name) están definidas en pastel.css
+ * =============================================================================
+ */
+
+
+/* =============================================================================
+   1. INDICADOR BETA
+   ============================================================================= */
+
+/**
+ * Cinta "BETA" que aparece en la esquina superior derecha.
+ * Se usa para indicar que el sistema está en fase de pruebas.
+ */
+#beta {
+  position: absolute;
+  right: -31px;
+  top: -10px;
+  color: white;
+  font-size: 110%;
+  font-weight: bold;
+  transform: rotate(45deg);
+  -webkit-transform: rotate(45deg);
+  background: red;
+  padding: 25px 25px 5px 25px;
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+}
+
+
+/* =============================================================================
+   2. LAYOUT Y ESPACIADO
+   ============================================================================= */
+
+/**
+ * Sección activa: añade sombra para destacar visualmente.
+ */
+.ox-active-section {
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  padding: 5px;
+}
+
+/**
+ * Área de detalle: márgenes y padding para separación de campos.
+ */
+.ox-detail {
+  margin: 8px 10px 0px 20px;
+  padding-top: 2px;
+}
+
+/**
+ * Contenedor de secciones: margen izquierdo para alineación.
+ */
+.ox-sections {
+  margin-left: 5px;
+}
+
+/**
+ * Sección individual: estilo con degradado y animación de sombra.
+ */
+.ox-section {
+  position: relative;
+  margin: 8px -10px 10px -10px;
+  padding: 3px 10px 0px 0px;
+  background: linear-gradient(rgba(255, 255, 255, 0.3),
+      rgba(255, 255, 255, 0.3)), var(--section-background);
+  animation: box-shadow-in 0.5s linear both;
+}
+
+
+/* =============================================================================
+   3. ANIMACIONES
+   ============================================================================= */
+
+/**
+ * Animación de expansión horizontal desde la izquierda.
+ * Se usa para el módulo seleccionado en el menú lateral.
+ */
+@keyframes scale-up-horizontal-left {
+  0% {
+    transform: scaleX(0.4);
+    transform-origin: left center;
+  }
+
+  100% {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+}
+
+/**
+ * Animación de aparición de sombra.
+ * Se usa para las secciones al cargar.
+ */
+@keyframes box-shadow-in {
+  0% {
+    box-shadow: 0 0px 0px -2px rgba(0, 0, 0, 0);
+  }
+
+  100% {
+    box-shadow: 0 4px 4px -2px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/**
+ * Módulo seleccionado en el menú: aplica animación de expansión.
+ */
+#modules_list .selected {
+  animation: scale-up-horizontal-left 0.5s;
+}
+
+
+/* =============================================================================
+   4. MENSAJES DEL SISTEMA
+   ============================================================================= */
+
+/**
+ * Contenedor de mensajes: ajustes de layout y color de texto blanco.
+ * Esto asegura que el texto sea legible sobre los fondos de color de OX.
+ */
+.ox-message-box {
+  font-size: medium;
+  font-weight: normal;
+  color: white;
+  padding: 10px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+}
+
+/**
+ * Botón de cerrar mensaje: estilo base.
+ */
+.ox-message-box .mdi-close {
+  float: right;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+/**
+ * Botón de cerrar: hover - agranda.
+ */
+.ox-message-box .mdi-close:hover {
+  transform: scale(1.5);
+}
+
+/**
+ * Botón de cerrar: active - efecto de "clic".
+ */
+.ox-message-box .mdi-close:active {
+  transform: scale(0.9);
+}
+
+
+/* =============================================================================
+   4.1 FIX: CALENDARIO (DATE PICKER) Z-INDEX
+   ============================================================================= */
+
+/**
+ * Asegura que el calendario de fechas aparezca por encima de los diálogos.
+ * Esto es necesario en el tema pastel cuando se abre un calendario dentro de un dialog.
+ */
+.flatpickr-calendar {
+  z-index: 10001 !important;
+}
+
+.ui-datepicker {
+  z-index: 10001 !important;
+}
+
+
+/* =============================================================================
+   5. PESTAÑAS Y SECCIONES
+   ============================================================================= */
+
+/**
+ * Pestaña de sección activa: estilo destacado con borde y sombra.
+ */
+.ox-active .ox-section-tab {
+  color: var(--active-section-tab-color);
+  border-bottom-color: var(--active-section-tab-bottom-color);
+  font-size: 1.2em;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--active-section-tab-border-color);
+  box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
+}
+
+
+/* =============================================================================
+   6. ESTILOS DE FILAS (ROW STYLES)
+   ============================================================================= */
+
+/**
+ * Empleado inactivo: reduce opacidad para indicar estado.
+ * Se usa con @RowStyle en Personal.java
+ */
+tr.empleadoInactivo td,
+.ox-list-pair.empleadoInactivo {
+  opacity: 0.5;
+}
+
+/**
+ * Empleado eliminado (en papelera): fondo rojo claro y texto tachado.
+ * Se usa con @RowStyle en Personal.java para el Tab "Eliminado"
+ */
+tr.empleadoEliminado td,
+.ox-list-pair.empleadoEliminado {
+  background-color: #fbe2e5 !important;
+  color: #721c24;
+  text-decoration: line-through;
+}
+
+tr.empleadoEliminado td:first-child,
+.ox-list-pair.empleadoEliminado {
+  text-decoration: none;
+  /* La foto no se tacha */
+}
+
+
+/* =============================================================================
+   7. ESTADOS DE AUDITORÍA - COLORES PASTEL
+   ============================================================================= 
+   
+   Estos estilos se usan con @RowStyle en AuditoriaRegistros.java
+   para indicar visualmente el estado de cada registro de jornada.
+*/
+
+/* ----- VERDE: Jornadas completas ----- */
+.estilo-verde-claro {
+  background-color: #e2f5e9;
+  color: #2f6f46;
+}
+
+.estilo-verde-intenso {
+  background-color: #a3d9b1;
+  color: #0f3d25;
+}
+
+/* ----- AMARILLO: Jornadas incompletas / advertencias ----- */
+.estilo-amarillo-claro {
+  background-color: #fff9d6;
+  color: #a08700;
+}
+
+.estilo-amarillo-intenso {
+  background-color: #ffe8a1;
+  color: #665200;
+  font-weight: bold;
+}
+
+/* ----- AZUL: Estados especiales (feriados trabajados, etc.) ----- */
+.estilo-azul-claro {
+  background-color: #d6eafc;
+  color: #27648c;
+}
+
+.estilo-azul-intenso {
+  background-color: #a6d2f3;
+  color: #154763;
+  font-weight: bold;
+}
+
+/* ----- ROJO: Ausencias / errores ----- */
+.estilo-rojo-claro {
+  background-color: #fbe2e5;
+  color: #912b37;
+}
+
+.estilo-rojo-intenso {
+  background-color: #f5b3ba;
+  color: #721c24;
+  font-weight: bold;
+}
+
+/* ----- GRIS: Estados neutros (sin turno, licencia, etc.) ----- */
+.estilo-gris-claro {
+  background-color: #f0f0f0;
+  color: #666666;
+}
+
+.estilo-gris-intenso {
+  background-color: #d0d0d0;
+  color: #333333;
+  font-weight: bold;
+}
+
+/* ----- NARANJA: Fichadas faltantes (requiere atención) ----- */
+.estilo-naranja-claro {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.estilo-naranja-intenso {
+  background-color: #ffcc80;
+  color: #bf360c;
+  font-weight: bold;
+}
+
+
+/* =============================================================================
+   8. PAGINA DE BIENVENIDA - STA.RH
+   ============================================================================= */
+
+/* Contenedor principal */
+.welcome-body {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+  min-height: 100vh !important;
+  display: flex !important;
+  background: #f0f0f0 !important;
+}
+
+/* Panel izquierdo - Branding */
+.welcome-left {
+  flex: 1 !important;
+  background: linear-gradient(145deg, #1e3a5f, #0f2744) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 40px !important;
+  color: white !important;
+}
+
+/* Contenedor del logo */
+.welcome-logo-box {
+  width: 110px !important;
+  height: 110px !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  margin-bottom: 35px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 0 4px rgba(255, 255, 255, 0.15) !important;
+}
+
+.welcome-logo-box img {
+  width: 110px !important;
+  height: 110px !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+/* Titulo principal */
+.welcome-title {
+  font-size: 3.8rem !important;
+  font-weight: 800 !important;
+  margin: 0 0 12px 0 !important;
+  letter-spacing: -3px !important;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+  color: #ffffff !important;
+}
+
+/* Subtitulo */
+.welcome-subtitle {
+  font-size: 0.85rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 5px !important;
+  color: rgba(167, 199, 231, 0.9) !important;
+  margin: 0 0 45px 0 !important;
+  font-weight: 500 !important;
+}
+
+/* Slogan */
+.welcome-slogan {
+  font-size: 1.1rem !important;
+  line-height: 1.9 !important;
+  text-align: center !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  max-width: 380px !important;
+  margin: 0 !important;
+}
+
+.welcome-slogan strong {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* Panel derecho - Login */
+.welcome-right {
+  width: 450px !important;
+  background: #ffffff !important;
+  display: flex !important;
+  flex-direction: column !important;
+  /* Removed justify-content: center to allow footer to sit at bottom */
+  align-items: center !important;
+  padding: 40px 60px 20px 60px !important;
+  /* Adjusted padding */
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Wrapper to center content vertically */
+.welcome-content-wrapper {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+/* Texto de bienvenida */
+.welcome-heading {
+  font-size: 2rem !important;
+  font-weight: 700 !important;
+  color: #1e3a5f !important;
+  margin: 0 0 12px 0 !important;
+}
+
+.welcome-desc {
+  font-size: 1rem !important;
+  color: #64748b !important;
+  margin: 0 0 30px 0 !important;
+}
+
+/* Boton de login */
+.welcome-btn {
+  width: 100% !important;
+  max-width: 300px !important;
+  padding: 20px 45px !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  font-family: inherit !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2.5px !important;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #1e3a5f, #2563eb) !important;
+  border: none !important;
+  border-radius: 12px !important;
+  cursor: pointer !important;
+  box-shadow: 0 12px 30px rgba(30, 58, 95, 0.35) !important;
+  transition: all 0.3s ease !important;
+}
+
+.welcome-btn:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 18px 45px rgba(30, 58, 95, 0.45) !important;
+}
+
+/* QR Code Section */
+.welcome-qr-section {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  margin: 40px 0 0 0 !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.welcome-qr-img {
+  width: 160px !important;
+  height: auto !important;
+  margin-bottom: 15px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 5px !important;
+  background: white !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+.welcome-qr-text {
+  font-size: 0.85rem !important;
+  color: #64748b !important;
+  max-width: 320px !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+}
+
+/* Footer */
+.welcome-footer {
+  margin-top: 20px !important;
+  font-size: 0.85rem !important;
+  color: #94a3b8 !important;
+  text-align: center !important;
+}
+
+.welcome-footer strong {
+  color: #1e3a5f !important;
+}
+
+.welcome-footer-small {
+  font-size: 0.75rem !important;
+  color: #cbd5e1 !important;
+  letter-spacing: 1px !important;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .welcome-body {
+    flex-direction: column !important;
+  }
+
+  .welcome-left {
+    padding: 35px 25px !important;
+  }
+
+  .welcome-right {
+    width: 100% !important;
+    flex: 1 !important;
+    padding: 35px 25px !important;
+  }
+
+  .welcome-title {
+    font-size: 2.5rem !important;
+  }
+
+  .welcome-logo-box,
+  .welcome-logo-box img {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  .welcome-slogan {
+    display: none !important;
+  }
+}
+
+
+/* =============================================================================
+   ESTILOS PARA PAGINA DE LOGIN STA.RH
+   ============================================================================= */
+
+/* Branding Header */
+#starh_branding {
+  text-align: center;
+  padding: 28px 20px 20px 20px;
+  background: linear-gradient(145deg, #1e3a5f, #0f2744);
+  border-radius: 16px 16px 0 0;
+  max-width: 320px;
+  margin: 50px auto 0 auto;
+  box-sizing: border-box;
+}
+
+/* Logo - usando ruta relativa desde xava/style hacia naviox/images */
+#starh_logo {
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 12px auto;
+  border-radius: 16px;
+  background-image: url('../../naviox/images/starh-logo.jpg');
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+/* Titulo */
+#starh_title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0 0 4px 0;
+  letter-spacing: -1px;
+  color: #ffffff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+
+/* Subtitulo */
+#starh_subtitle {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: rgba(167, 199, 231, 0.9);
+  font-weight: 500;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  margin: 0;
+}
+
+/* Sign In Box */
+#sign_in_box {
+  max-width: 320px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+#sign_in_box #core {
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#sign_in_box .ox-detail {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+#sign_in_box table {
+  width: 100% !important;
+}
+
+#sign_in_box .ox-property-label,
+#sign_in_box label {
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  margin-bottom: 6px !important;
+  display: block !important;
+}
+
+#sign_in_box input[type="text"],
+#sign_in_box input[type="password"],
+#sign_in_box select {
+  width: 100% !important;
+  padding: 13px 15px !important;
+  font-size: 0.95rem !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  background: #f8fafc !important;
+  color: #1e293b !important;
+  margin-bottom: 14px !important;
+  box-sizing: border-box !important;
+}
+
+#sign_in_box input[type="text"]:focus,
+#sign_in_box input[type="password"]:focus {
+  border-color: #1e3a5f !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1) !important;
+  outline: none !important;
+}
+
+/* Boton de Entrar - solo el input[type=button] */
+#sign_in_box input[type="button"].xava_action {
+  width: 100% !important;
+  padding: 14px 20px !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.5px !important;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #1e3a5f, #2563eb) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  box-shadow: 0 8px 20px rgba(30, 58, 95, 0.3) !important;
+  margin-top: 6px !important;
+}
+
+#sign_in_box input[type="button"].xava_action:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 28px rgba(30, 58, 95, 0.4) !important;
+}
+
+/* Ocultar el boton DEFAULT_ACTION vacio de OpenXava */
+#sign_in_box button.xava_action[name="xava.DEFAULT_ACTION"] {
+  display: none !important;
+}
+
+#sign_in_box .ox-frame,
+#sign_in_box fieldset {
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+#sign_in_box legend {
+  display: none !important;
+}
+
+/* Footer */
+#starh_footer {
+  text-align: center;
+  padding: 14px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 0 0 16px 16px;
+  max-width: 320px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+#starh_footer p {
+  margin: 0 0 3px 0;
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+
+#starh_footer strong {
+  color: #1e3a5f;
+}
