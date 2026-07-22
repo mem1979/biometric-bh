@@ -225,6 +225,16 @@ https://github.com/openxava/openxava/blob/master/openxavatest/src/main/resources
         <accion nombre="redondeoIndividual" oculta="true" clase="com.sta.biometric.acciones.MostrarDialogoRedondeoIndividualAction" icono="clock-edit-outline">
         </accion>
 
+        <!-- Acción para enviar horas al Banco de Horas (Exclusiva de fila) -->
+        <accion nombre="enviarABancoHoras" modo="NONE" clase="com.sta.biometric.acciones.EnviarABancoHorasAction" icono="bank-transfer" en-cada-fila="true"/>
+
+    </controlador>
+
+    <!-- Controlador para diálogo modal de asignación al Banco de Horas -->
+    <controlador nombre="DialogoBancoHoras">
+        <accion nombre="confirmar" clase="com.sta.biometric.acciones.ConfirmarEnvioBancoHorasAction" icono="check" atajo-de-teclado="ENTER"/>
+        <accion nombre="quitarDelBanco" clase="com.sta.biometric.acciones.QuitarDelBancoAction" icono="delete" confirmar="true"/>
+        <accion nombre="cancelar" clase="org.openxava.actions.CancelAction" icono="close" atajo-de-teclado="ESCAPE"/>
     </controlador>
 
     <controlador nombre="FechaInformeDiario">
@@ -332,6 +342,17 @@ https://github.com/openxava/openxava/blob/master/openxavatest/src/main/resources
     <controlador nombre="DispositivoBiometrico">
         <hereda-de controlador="Typical"/>
         <accion nombre="exportarPersonalCSV" modo="list" clase="com.sta.biometric.acciones.ExportarPersonalCsvAction" icono="file-export" procesar-elementos-seleccionados="true"/>
+    </controlador>
+
+    <!-- Controlador para la colección de movimientos del Banco de Horas en Legajo -->
+    <controlador nombre="BancoHoras">
+        <accion nombre="revertirMovimiento" modo="list" procesar-elementos-seleccionados="true" clase="com.sta.biometric.acciones.RevertirMovimientoBancoAction" icono="undo" en-cada-fila="true"/>
+    </controlador>
+
+    <!-- Controlador para diálogo modal de reversión de movimientos -->
+    <controlador nombre="DialogoReversionBanco">
+        <accion nombre="confirmar" clase="com.sta.biometric.acciones.ConfirmarReversionBancoAction" icono="check" atajo-de-teclado="ENTER"/>
+        <accion nombre="cancelar" clase="org.openxava.actions.CancelAction" icono="close" atajo-de-teclado="ESCAPE"/>
     </controlador>
 
 </controladores>

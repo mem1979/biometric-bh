@@ -218,14 +218,23 @@ public class LiquidacionJornadaService {
         int totalEspeciales = 0;
 
         for (AuditoriaRegistros registro : registros) {
-            // Sumar minutos normales (convertir de formato HH:MM)
-            totalNormales += convertirHHMMaMinutos(registro.getHorasTrabajadasTurno());
+            int minNormales = convertirHHMMaMinutos(registro.getHorasTrabajadasTurno());
+            int minExtras = convertirHHMMaMinutos(registro.getHorasExtras());
+            int minEspeciales = convertirHHMMaMinutos(registro.getHorasEspeciales());
 
-            // Sumar minutos extras
-            totalExtras += convertirHHMMaMinutos(registro.getHorasExtras());
+            int enviadosBanco = registro.getMinutosEnviadosAlBanco();
 
-            // Sumar minutos especiales
-            totalEspeciales += convertirHHMMaMinutos(registro.getHorasEspeciales());
+            if (enviadosBanco > 0) {
+                // Extras enviadas al banco → restar de extras (no se pagan)
+                minExtras = Math.max(0, minExtras - enviadosBanco);
+            } else if (enviadosBanco < 0) {
+                // Faltantes/ausencias enviadas al banco → compensar normales (no se descuentan)
+                minNormales = minNormales + Math.abs(enviadosBanco);
+            }
+
+            totalNormales += minNormales;
+            totalExtras += minExtras;
+            totalEspeciales += minEspeciales;
         }
 
         liquidacion.setTotalMinutosNormales(totalNormales);

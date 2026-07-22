@@ -144,6 +144,10 @@ import lombok.*;
 
         "LIQUIDACION_JORNADAS { " +
         "liquidaciones; " +
+        "BANCO_HORAS [" +
+        "saldoBancoHorasDisplay; " +
+        "movimientosBancoHoras; " +
+        "]; " +
         "}; " +
 
         "INCIDENCIAS_Y_OBSERVACIONES { " +
@@ -1543,6 +1547,34 @@ public class Personal extends Identifiable {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    // ==================================================================================
+    // BANCO DE HORAS - METODOS TRANSIENT Y COLECCION PARA LA VISTA
+    // ==================================================================================
+
+    /**
+     * Muestra el saldo actual del Banco de Horas del empleado mediante LargeDisplay.
+     */
+    @Transient
+    @LargeDisplay(icon = "bank-transfer")
+    public String getSaldoBancoHorasDisplay() {
+        if (getId() == null)
+            return "Saldo Actual: 00:00 hs";
+        BancoHoras b = BancoHorasService.buscarBanco(this);
+        return b != null ? b.getSaldoBancoHorasDisplay() : "Saldo Actual: 00:00 hs";
+    }
+
+    /**
+     * Colección de movimientos del Banco de Horas del empleado.
+     */
+    @Transient
+    @NoDefaultActions
+    @ReadOnly
+    @RowAction("BancoHoras.revertirMovimiento")
+    @ListProperties("fechaCreacion, fechaJornada, tipo, minutosFormateados, saldoAnteriorFormateado, saldoNuevoFormateado, usuarioOperacion, observacion")
+    public Collection<MovimientoBancoHoras> getMovimientosBancoHoras() {
+        return BancoHorasService.obtenerMovimientosBanco(this);
     }
 
 }

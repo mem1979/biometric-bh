@@ -253,6 +253,22 @@ public class AuditoriaRegistros extends Identifiable {
     @Hidden
     private int ajusteRedondeoEspeciales = 0; // Ajuste de redondeo auto para especiales
 
+    // ==================================================================================
+    // 6.2. BANCO DE HORAS
+    // ==================================================================================
+
+    /**
+     * Minutos redirigidos al Banco de Horas.
+     * <p>
+     * Positivo: extras enviadas al banco (se restan de la liquidación monetaria).
+     * Negativo: faltante/ausencia enviado al banco (se compensan en la liquidación monetaria).
+     * Cero: registro normal sin banco de horas.
+     * </p>
+     */
+    @Column(columnDefinition = "INTEGER DEFAULT 0")
+    @Hidden
+    private int minutosEnviadosAlBanco = 0;
+
     @Stereotype("MEMO")
     @Column(length = 2000)
     private String nota; // Observaciones generales
@@ -780,8 +796,19 @@ public class AuditoriaRegistros extends Identifiable {
      * </p>
      */
     public void actualizarNotaSegunEvaluacion() {
+        // Preservar líneas de notas históricas registradas por el Banco de Horas
+        List<String> notasBancoPreservadas = new ArrayList<>();
+        if (this.nota != null && !this.nota.isBlank()) {
+            for (String linea : this.nota.split("\n")) {
+                if (linea.contains("🏦") || linea.contains("↩️")) {
+                    notasBancoPreservadas.add(linea);
+                }
+            }
+        }
+
         if (evaluacion == null) {
             setNota("Sin evaluación disponible.");
+            restaurarNotasBancoPreservadas(notasBancoPreservadas);
             return;
         }
 
@@ -844,6 +871,23 @@ public class AuditoriaRegistros extends Identifiable {
 
             default:
                 setNota("Estado: " + evaluacion.getDescripcion());
+        }
+
+        restaurarNotasBancoPreservadas(notasBancoPreservadas);
+    }
+
+    private void restaurarNotasBancoPreservadas(List<String> notasBancoPreservadas) {
+        if (notasBancoPreservadas != null && !notasBancoPreservadas.isEmpty()) {
+            StringBuilder sb = new StringBuilder(this.nota != null ? this.nota : "");
+            for (String linea : notasBancoPreservadas) {
+                if (!sb.toString().contains(linea)) {
+                    if (sb.length() > 0) {
+                        sb.append("\n");
+                    }
+                    sb.append(linea);
+                }
+            }
+            this.nota = sb.toString();
         }
     }
 
@@ -1570,6 +1614,15 @@ public class AuditoriaRegistros extends Identifiable {
 
     @MiLabel(medida = "mediana", negrita = true, recuadro = false, mayuscula = false)
     public String getEstadoJornada() {
+        // Indicador de Banco de Horas (prioritario)
+        if (minutosEnviadosAlBanco != 0) {
+            String signoStr = minutosEnviadosAlBanco > 0 ? "+" : "";
+            int h = Math.abs(minutosEnviadosAlBanco) / 60;
+            int m = Math.abs(minutosEnviadosAlBanco) % 60;
+            String tiempoStr = (h > 0) ? String.format("%s%dh %dmin", signoStr, h, m) : String.format("%s%dmin", signoStr, m);
+            return "🏦 Banco (" + tiempoStr + ")";
+        }
+
         // Si hay ajustes manuales, indicarlo siempre
         if (tieneAjustesManuales()) {
             return "📝 Ajustado";

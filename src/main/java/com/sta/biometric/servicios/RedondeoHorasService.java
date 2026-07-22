@@ -162,12 +162,21 @@ public class RedondeoHorasService {
     private static int calcularTotalMinutos(List<AuditoriaRegistros> registros, String tipoHora) {
         int total = 0;
         for (AuditoriaRegistros reg : registros) {
+            int enviadosBanco = reg.getMinutosEnviadosAlBanco();
             switch (tipoHora) {
                 case "normales":
-                    total += parsearHHMM(reg.getHorasBaseNormales()) + reg.getAjusteMinutosNormales();
+                    int minN = parsearHHMM(reg.getHorasBaseNormales()) + reg.getAjusteMinutosNormales();
+                    if (enviadosBanco < 0) {
+                        minN += Math.abs(enviadosBanco);
+                    }
+                    total += minN;
                     break;
                 case "extras":
-                    total += parsearHHMM(reg.getHorasBaseExtras()) + reg.getAjusteMinutosExtras();
+                    int minE = parsearHHMM(reg.getHorasBaseExtras()) + reg.getAjusteMinutosExtras();
+                    if (enviadosBanco > 0) {
+                        minE = Math.max(0, minE - enviadosBanco);
+                    }
+                    total += minE;
                     break;
                 case "especiales":
                     total += parsearHHMM(reg.getHorasBaseEspeciales()) + reg.getAjusteMinutosEspeciales();
@@ -186,12 +195,19 @@ public class RedondeoHorasService {
         List<AuditoriaRegistros> registrosConHoras = new ArrayList<>();
         for (AuditoriaRegistros reg : registros) {
             int minutos = 0;
+            int enviadosBanco = reg.getMinutosEnviadosAlBanco();
             switch (tipoHora) {
                 case "normales":
                     minutos = parsearHHMM(reg.getHorasBaseNormales()) + reg.getAjusteMinutosNormales();
+                    if (enviadosBanco < 0) {
+                        minutos += Math.abs(enviadosBanco);
+                    }
                     break;
                 case "extras":
                     minutos = parsearHHMM(reg.getHorasBaseExtras()) + reg.getAjusteMinutosExtras();
+                    if (enviadosBanco > 0) {
+                        minutos = Math.max(0, minutos - enviadosBanco);
+                    }
                     break;
                 case "especiales":
                     minutos = parsearHHMM(reg.getHorasBaseEspeciales()) + reg.getAjusteMinutosEspeciales();
