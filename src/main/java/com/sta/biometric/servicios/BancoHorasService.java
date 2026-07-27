@@ -127,6 +127,14 @@ public class BancoHorasService {
         int minutosExtras = registro.getMinutosExtras();
         int yaEnviados = registro.getMinutosEnviadosAlBanco();
 
+        // 0. Excepción Feriado: si es feriado y NO debe trabajar feriado puente, la jornada trabajada completa es computable
+        if (registro.aplicaExcepcionBancoFeriado()) {
+            if (minutosTrabajados > 0) {
+                return Math.max(0, minutosTrabajados - Math.max(0, yaEnviados));
+            }
+            return 0;
+        }
+
         // 1. Jornada con extras (COMPLETA, FERIADO_TRABAJADO, etc.)
         if (minutosExtras > 0) {
             int disponiblePositivo = Math.max(0, minutosExtras - Math.max(0, yaEnviados));

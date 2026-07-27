@@ -1554,7 +1554,8 @@ public class Personal extends Identifiable {
     // ==================================================================================
 
     /**
-     * Muestra el saldo actual del Banco de Horas del empleado mediante LargeDisplay.
+     * Muestra el saldo actual del Banco de Horas del empleado mediante
+     * LargeDisplay.
      */
     @Transient
     @LargeDisplay(icon = "bank-transfer")
@@ -1571,8 +1572,9 @@ public class Personal extends Identifiable {
     @Transient
     @NoDefaultActions
     @ReadOnly
-    @RowAction("BancoHoras.revertirMovimiento")
-    @ListProperties("fechaCreacion, fechaJornada, tipo, minutosFormateados, saldoAnteriorFormateado, saldoNuevoFormateado, usuarioOperacion, observacion")
+    @ViewAction("")
+    @RowAction("BancoHoras.eliminarMovimiento")
+    @ListProperties("fechaCreacion, usuarioOperacion, fechaJornada, tipo, minutosFormateados, saldoAnteriorFormateado, saldoNuevoFormateado, observacion")
     public Collection<MovimientoBancoHoras> getMovimientosBancoHoras() {
         return BancoHorasService.obtenerMovimientosBanco(this);
     }

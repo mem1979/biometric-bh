@@ -85,6 +85,7 @@ com\sta\biometric\modelo\ContratoLaboral.class
 com\sta\biometric\servicios\VacacionesPeriodoService.class
 com\sta\biometric\acciones\AplicarAjusteHorasPorTipoAction.class
 com\sta\biometric\modelo\DialogoBancoHoras.class
+com\sta\biometric\acciones\EliminarMovimientoBancoAction.class
 com\sta\biometric\acciones\FiltroMesActualFechaAction.class
 com\sta\biometric\rest\HikvisionFilterListener.class
 com\sta\biometric\dto\DatosDesempenoDTO$NotaResumenDTO.class

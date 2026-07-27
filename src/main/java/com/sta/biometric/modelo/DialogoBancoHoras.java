@@ -37,18 +37,21 @@ public class DialogoBancoHoras {
      * Diferencia total registrada en la jornada (ReadOnly).
      */
     @ReadOnly
+    @LabelFormat(LabelFormatType.SMALL)
     private String diferenciaTotal;
 
     /**
      * Minutos ya redirigidos previamente al banco para esta jornada (ReadOnly).
      */
     @ReadOnly
+    @LabelFormat(LabelFormatType.SMALL)
     private String yaEnviado;
 
     /**
      * Minutos disponibles actualmente para enviar al banco (ReadOnly).
      */
     @ReadOnly
+    @LabelFormat(LabelFormatType.SMALL)
     private String disponible;
 
     /**

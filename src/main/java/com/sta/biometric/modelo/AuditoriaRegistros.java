@@ -57,7 +57,8 @@ import lombok.*;
         "nota;" +
         "}")
 
-@Tab(editors = "List", properties = "empleado.nombreCompleto, diaSemana, fecha, horario, evaluacion, estadoJornada, empleado.sucursal.nombre", defaultOrder = "${fecha} desc, ${empleado.sucursal.nombre} asc, ${empleado.nombreCompleto} asc", rowStyles = {
+@Tab(editors = "List", properties = "empleado.nombreCompleto, diaSemana, fecha, horario, evaluacion, estadoJornada, enBanco, empleado.sucursal.nombre", defaultOrder = "${fecha} desc, ${empleado.sucursal.nombre} asc, ${empleado.nombreCompleto} asc", rowStyles = {
+        @RowStyle(style = "estilo-violeta-claro", property = "enBanco", value = "true"),
         @RowStyle(style = "estilo-gris-claro", property = "evaluacion", value = "PENDIENTE"),
         @RowStyle(style = "estilo-gris-intenso", property = "evaluacion", value = "EN_CURSO"),
         @RowStyle(style = "estilo-verde-intenso", property = "evaluacion", value = "COMPLETA"),
@@ -261,13 +262,18 @@ public class AuditoriaRegistros extends Identifiable {
      * Minutos redirigidos al Banco de Horas.
      * <p>
      * Positivo: extras enviadas al banco (se restan de la liquidación monetaria).
-     * Negativo: faltante/ausencia enviado al banco (se compensan en la liquidación monetaria).
+     * Negativo: faltante/ausencia enviado al banco (se compensan en la liquidación
+     * monetaria).
      * Cero: registro normal sin banco de horas.
      * </p>
      */
     @Column(columnDefinition = "INTEGER DEFAULT 0")
     @Hidden
     private int minutosEnviadosAlBanco = 0;
+
+    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Hidden
+    private boolean enBanco = false;
 
     @Stereotype("MEMO")
     @Column(length = 2000)
@@ -276,10 +282,11 @@ public class AuditoriaRegistros extends Identifiable {
     // ==================================================================================
     // 7. CONTEXTO PARA RECALCULO
     // ==================================================================================
-    // Estas variables permiten inyectar una Licencia específica durante el recalculo para
+    // Estas variables permiten inyectar una Licencia específica durante el
+    // recalculo para
     // considerarla en memoria aunque no esté aún en base de datos, o para ignorarla
     // si está en proceso de eliminación.
-    
+
     @Transient
     private Licencia contextoLicencia = null;
 
@@ -297,10 +304,11 @@ public class AuditoriaRegistros extends Identifiable {
     }
 
     private boolean verificarLicenciaContexto() {
-        if (contextoLicencia != null && fecha != null && 
-            contextoLicencia.getFechaInicio() != null && contextoLicencia.getFechaFin() != null) {
-            return (fecha.isEqual(contextoLicencia.getFechaInicio()) || fecha.isAfter(contextoLicencia.getFechaInicio())) &&
-                   (fecha.isEqual(contextoLicencia.getFechaFin()) || fecha.isBefore(contextoLicencia.getFechaFin()));
+        if (contextoLicencia != null && fecha != null &&
+                contextoLicencia.getFechaInicio() != null && contextoLicencia.getFechaFin() != null) {
+            return (fecha.isEqual(contextoLicencia.getFechaInicio())
+                    || fecha.isAfter(contextoLicencia.getFechaInicio())) &&
+                    (fecha.isEqual(contextoLicencia.getFechaFin()) || fecha.isBefore(contextoLicencia.getFechaFin()));
         }
         return false;
     }
@@ -336,11 +344,11 @@ public class AuditoriaRegistros extends Identifiable {
 
         // 2. Verificar condiciones especiales (Feriados, Licencias)
         feriado = Feriados.existeParaFecha(fecha);
-        
+
         if (contextoLicencia != null && verificarLicenciaContexto()) {
-             licencia = !contextoEsEliminacion;
+            licencia = !contextoEsEliminacion;
         } else {
-             licencia = Licencia.tieneLicenciaEnFecha(empleado, fecha);
+            licencia = Licencia.tieneLicenciaEnFecha(empleado, fecha);
         }
 
         // 2.1 Calcular imputación de horas por licencia con goce de sueldo
@@ -550,9 +558,9 @@ public class AuditoriaRegistros extends Identifiable {
             // Diferenciar según tipo de licencia
             Licencia licenciaDetalle = null;
             if (contextoLicencia != null && !contextoEsEliminacion && verificarLicenciaContexto()) {
-                 licenciaDetalle = contextoLicencia;
+                licenciaDetalle = contextoLicencia;
             } else {
-                 licenciaDetalle = Licencia.getLicenciaEnFecha(empleado, fecha);
+                licenciaDetalle = Licencia.getLicenciaEnFecha(empleado, fecha);
             }
             if (licenciaDetalle != null) {
                 if (!licenciaDetalle.isJustificado()) {
@@ -677,9 +685,9 @@ public class AuditoriaRegistros extends Identifiable {
         // Obtener detalles de la licencia
         Licencia licenciaDetalle = null;
         if (contextoLicencia != null && !contextoEsEliminacion && verificarLicenciaContexto()) {
-             licenciaDetalle = contextoLicencia;
+            licenciaDetalle = contextoLicencia;
         } else {
-             licenciaDetalle = Licencia.getLicenciaEnFecha(empleado, fecha);
+            licenciaDetalle = Licencia.getLicenciaEnFecha(empleado, fecha);
         }
 
         if (licenciaDetalle == null) {
@@ -738,9 +746,9 @@ public class AuditoriaRegistros extends Identifiable {
                 // Licencia total: diferenciar según tipo
                 Licencia licenciaDetalle = null;
                 if (contextoLicencia != null && !contextoEsEliminacion && verificarLicenciaContexto()) {
-                     licenciaDetalle = contextoLicencia;
+                    licenciaDetalle = contextoLicencia;
                 } else {
-                     licenciaDetalle = Licencia.getLicenciaEnFecha(empleado, fecha);
+                    licenciaDetalle = Licencia.getLicenciaEnFecha(empleado, fecha);
                 }
                 if (licenciaDetalle != null) {
                     if (!licenciaDetalle.isJustificado()) {
@@ -898,9 +906,9 @@ public class AuditoriaRegistros extends Identifiable {
     private void generarNotaLicencia() {
         Licencia licenciaDetalle = null;
         if (contextoLicencia != null && !contextoEsEliminacion && verificarLicenciaContexto()) {
-             licenciaDetalle = contextoLicencia;
+            licenciaDetalle = contextoLicencia;
         } else {
-             licenciaDetalle = Licencia.getLicenciaEnFecha(empleado, fecha);
+            licenciaDetalle = Licencia.getLicenciaEnFecha(empleado, fecha);
         }
         if (licenciaDetalle != null) {
             String tipoDesc = licenciaDetalle.getTipo() != null
@@ -1465,16 +1473,32 @@ public class AuditoriaRegistros extends Identifiable {
      * @return true si el empleado debe trabajar en este feriado puente
      */
     @Transient
-    private boolean debeTrabajarFeriadoPuente() {
-        if (!feriado || empleado == null || fecha == null) return false;
-        if (!Feriados.esFeriadoPuente(fecha)) return false;
+    public boolean debeTrabajarFeriadoPuente() {
+        if (!feriado || empleado == null || fecha == null)
+            return false;
+        if (!Feriados.esFeriadoPuente(fecha))
+            return false;
 
         TurnosHorarios turno = empleado.getTurnoParaFecha(fecha);
-        if (turno == null) return false;
-        if (turno.getTurnoNombre() != Turnos.ESPECIAL) return false;
-        if (!turno.isTrabajaFeriadosPuente()) return false;
+        if (turno == null)
+            return false;
+        if (turno.getTurnoNombre() != Turnos.ESPECIAL)
+            return false;
+        if (!turno.isTrabajaFeriadosPuente())
+            return false;
 
         return turno.esLaboral(fecha.getDayOfWeek());
+    }
+
+    /**
+     * Determina si la jornada corresponde a un feriado y el empleado NO tiene
+     * habilitado/obligado trabajar en feriado puente.
+     * 
+     * @return true si aplica la excepción de feriado para el Banco de Horas
+     */
+    @Transient
+    public boolean aplicaExcepcionBancoFeriado() {
+        return feriado && !debeTrabajarFeriadoPuente();
     }
 
     /**
@@ -1612,6 +1636,15 @@ public class AuditoriaRegistros extends Identifiable {
      */
     @Transient
 
+    public void setMinutosEnviadosAlBanco(int minutosEnviadosAlBanco) {
+        this.minutosEnviadosAlBanco = minutosEnviadosAlBanco;
+        this.enBanco = (minutosEnviadosAlBanco != 0);
+    }
+
+    public boolean isEnBanco() {
+        return this.enBanco || (this.minutosEnviadosAlBanco != 0);
+    }
+
     @MiLabel(medida = "mediana", negrita = true, recuadro = false, mayuscula = false)
     public String getEstadoJornada() {
         // Indicador de Banco de Horas (prioritario)
@@ -1619,7 +1652,8 @@ public class AuditoriaRegistros extends Identifiable {
             String signoStr = minutosEnviadosAlBanco > 0 ? "+" : "";
             int h = Math.abs(minutosEnviadosAlBanco) / 60;
             int m = Math.abs(minutosEnviadosAlBanco) % 60;
-            String tiempoStr = (h > 0) ? String.format("%s%dh %dmin", signoStr, h, m) : String.format("%s%dmin", signoStr, m);
+            String tiempoStr = (h > 0) ? String.format("%s%dh %dmin", signoStr, h, m)
+                    : String.format("%s%dmin", signoStr, m);
             return "🏦 Banco (" + tiempoStr + ")";
         }
 

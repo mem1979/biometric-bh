@@ -45,10 +45,16 @@ public class EnviarABancoHorasAction extends TabBaseAction {
         }
 
         int yaEnviados = registro.getMinutosEnviadosAlBanco();
-        int difTotal = registro.getMinutosExtras() > 0 ? registro.getMinutosExtras()
-                : (registro.getMinutosTrabajados() - registro.getMinutosEsperados());
+        int difTotal;
+        if (registro.aplicaExcepcionBancoFeriado()) {
+            difTotal = registro.getMinutosTrabajados();
+        } else if (registro.getMinutosExtras() > 0) {
+            difTotal = registro.getMinutosExtras();
+        } else {
+            difTotal = registro.getMinutosTrabajados() - registro.getMinutosEsperados();
+        }
 
-        if (registro.getEvaluacion() == EvaluacionJornada.AUSENTE && difTotal == 0) {
+        if (registro.getEvaluacion() == EvaluacionJornada.AUSENTE && difTotal == 0 && !registro.aplicaExcepcionBancoFeriado()) {
             int minDeuda = registro.getMinutosEsperados() > 0 ? registro.getMinutosEsperados() : 480;
             difTotal = -minDeuda;
         }

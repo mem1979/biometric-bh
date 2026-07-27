@@ -30,7 +30,9 @@
                             "biometric/Licencia",
                             "biometric/PapeleraPersonal",
                             "biometric/ContratoLaboral",
-                            "biometric/DispositivoBiometrico"
+                            "biometric/DispositivoBiometrico",
+                            "biometric/BancoHoras",
+                            "biometric/MovimientoBancoHoras"
 
                             );
 

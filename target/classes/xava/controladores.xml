@@ -216,6 +216,11 @@ https://github.com/openxava/openxava/blob/master/openxavatest/src/main/resources
         <subcontrolador nombre="Registros" controlador="AuditoriaGestionRegistros" icono="database"/>
         <subcontrolador nombre="Informes" controlador="AuditoriaInformes" icono="printer"/>
 
+        <!-- Acción de guardado por defecto de OpenXava en el detalle -->
+        <accion nombre="save" modo="detail" clase="org.openxava.actions.SaveAction" icono="content-save" atajo-de-teclado="Control S">
+            <poner propiedad="resetAfter" valor="false"/>
+        </accion>
+
         <accion nombre="FiltroMesActualFecha" oculta="true" clase="com.sta.biometric.acciones.FiltroMesActualFechaAction" al-iniciar="true" modo="list">
         </accion>
 
@@ -346,13 +351,7 @@ https://github.com/openxava/openxava/blob/master/openxavatest/src/main/resources
 
     <!-- Controlador para la colección de movimientos del Banco de Horas en Legajo -->
     <controlador nombre="BancoHoras">
-        <accion nombre="revertirMovimiento" modo="list" procesar-elementos-seleccionados="true" clase="com.sta.biometric.acciones.RevertirMovimientoBancoAction" icono="undo" en-cada-fila="true"/>
-    </controlador>
-
-    <!-- Controlador para diálogo modal de reversión de movimientos -->
-    <controlador nombre="DialogoReversionBanco">
-        <accion nombre="confirmar" clase="com.sta.biometric.acciones.ConfirmarReversionBancoAction" icono="check" atajo-de-teclado="ENTER"/>
-        <accion nombre="cancelar" clase="org.openxava.actions.CancelAction" icono="close" atajo-de-teclado="ESCAPE"/>
+        <accion nombre="eliminarMovimiento" modo="list" procesar-elementos-seleccionados="true" clase="com.sta.biometric.acciones.EliminarMovimientoBancoAction" icono="delete" confirmar="true" en-cada-fila="true"/>
     </controlador>
 
 </controladores>

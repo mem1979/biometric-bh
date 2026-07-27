@@ -313,6 +313,13 @@ tr.empleadoEliminado td:first-child,
   font-weight: bold;
 }
 
+/* ----- VIOLETA: Registros en Banco de Horas ----- */
+.estilo-violeta-claro {
+  background-color: #ebd9fc !important;
+  color: #4c1d95 !important;
+  font-weight: bold;
+}
+
 
 /* =============================================================================
    8. PAGINA DE BIENVENIDA - STA.RH
