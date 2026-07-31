@@ -166,9 +166,6 @@ public class RedondeoHorasService {
             switch (tipoHora) {
                 case "normales":
                     int minN = parsearHHMM(reg.getHorasBaseNormales()) + reg.getAjusteMinutosNormales();
-                    if (enviadosBanco < 0) {
-                        minN += Math.abs(enviadosBanco);
-                    }
                     total += minN;
                     break;
                 case "extras":
@@ -199,9 +196,6 @@ public class RedondeoHorasService {
             switch (tipoHora) {
                 case "normales":
                     minutos = parsearHHMM(reg.getHorasBaseNormales()) + reg.getAjusteMinutosNormales();
-                    if (enviadosBanco < 0) {
-                        minutos += Math.abs(enviadosBanco);
-                    }
                     break;
                 case "extras":
                     minutos = parsearHHMM(reg.getHorasBaseExtras()) + reg.getAjusteMinutosExtras();

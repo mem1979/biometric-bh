@@ -85,3 +85,17 @@ graph TD
     F & G & H --> I[Invocar a DatabaseAuditor para verificar Queries e Índices]
     I --> J[Ejecutar Maven Build y Pruebas]
 ```
+
+---
+
+## 📌 Reglas de Negocio Invariantes (Banco de Horas y Liquidación)
+
+1. **Invariante del Banco de Horas en Liquidación Monetaria (`minutosEnviadosAlBanco`):**
+   - **`minutosEnviadosAlBanco > 0` (Envío de Horas al Banco):** Representa un crédito generado por el empleado. Corresponde descontarlo únicamente del importe a liquidar en el recibo de sueldo ($\text{Liquidación} = \text{Horas Liquidadas} - \text{Banco}$).
+   - **`minutosEnviadosAlBanco < 0` (Consumo de Saldo del Banco):** Representa un consumo de saldo previamente acumulado para compensar un déficit o ausencia. **Jamás debe incrementar las horas ni el importe del recibo de sueldo**, evitando la doble compensación en dinero.
+
+2. **Invariante de Preservación de Capas:**
+   - **Horas Registradas (`getHorasBaseXxx`):** Inalterables (histórico del fichaje biométrico).
+   - **Horas Liquidadas (`getHorasTrabajadasTurno`, `getHorasExtras`, `getHorasEspeciales`):** Inalterables (clasificación real de la jornada $\text{Base} + \text{Ajuste Manual} + \text{Redondeo}$).
+   - **AuditoriaRegistros:** Describe la jornada sin acoplarse a políticas de pago.
+   - **LiquidacionJornadaService:** Concentra la lógica de determinación de las horas pagadas.

@@ -54,6 +54,18 @@ public class AplicarAjusteHorasPorTipoAction extends ViewBaseAction {
             return;
         }
 
+        // Validar si el registro pertenece a una liquidación CERRADA
+        if (esPeriodoLiquidacionCerrado(reg)) {
+            addError("No se pueden realizar ajustes manuales en una jornada perteneciente a un período de liquidación CERRADO.");
+            closeDialog();
+            return;
+        }
+
+        // Guardar valores anteriores por si la validación de no negatividad falla
+        int antNormales = reg.getAjusteMinutosNormales();
+        int antExtras = reg.getAjusteMinutosExtras();
+        int antEspeciales = reg.getAjusteMinutosEspeciales();
+
         // Aplicar ajuste según tipo
         String detalleAjuste = "";
         switch (tipo) {
@@ -73,6 +85,17 @@ public class AplicarAjusteHorasPorTipoAction extends ViewBaseAction {
                 addError("Tipo de hora no reconocido: " + tipo);
                 closeDialog();
                 return;
+        }
+
+        // Validar no negatividad de las horas liquidadas finales (Invariante del Dominio)
+        if (reg.tieneHorasLiquidadasNegativas()) {
+            // Revertir cambios en memoria
+            reg.setAjusteMinutosNormales(antNormales);
+            reg.setAjusteMinutosExtras(antExtras);
+            reg.setAjusteMinutosEspeciales(antEspeciales);
+
+            addError("El ajuste ingresado produce un resultado de horas liquidadas negativo para alguna categoría. Operación cancelada.");
+            return;
         }
 
         // Generar línea de motivo con timestamp
@@ -101,7 +124,40 @@ public class AplicarAjusteHorasPorTipoAction extends ViewBaseAction {
         closeDialog();
         getView().getRoot().refresh();
 
-        addMessage("✅ Ajuste de " + tipoHora + " aplicado correctamente.");
+        // Mensaje de éxito con información de balance
+        if (reg.esAjusteBalanceado()) {
+            addMessage("✅ Ajuste de " + tipoHora + " aplicado correctamente (Suma de ajustes balanceada = 0 min).");
+        } else {
+            int dif = reg.getDiferenciaAjustes();
+            String difStr = formatearConSigno(dif);
+            addMessage("✅ Ajuste de " + tipoHora + " aplicado. ⚠️ Atención: La suma actual de ajustes presenta un saldo de " + difStr + ". Recuerde ajustar las demás categorías para mantener la conservación del tiempo.");
+        }
+    }
+
+    /**
+     * Verifica si existe una liquidación cerrada para el empleado y la fecha del registro.
+     */
+    private boolean esPeriodoLiquidacionCerrado(AuditoriaRegistros reg) {
+        if (reg == null || reg.getEmpleado() == null || reg.getFecha() == null) {
+            return false;
+        }
+        try {
+            Long count = XPersistence.getManager()
+                    .createQuery(
+                            "SELECT COUNT(l) FROM LiquidacionJornadas l " +
+                                    "WHERE l.empleado = :emp " +
+                                    "AND l.periodoDesde <= :fecha " +
+                                    "AND l.periodoHasta >= :fecha " +
+                                    "AND l.estadoPeriodo = :estado",
+                            Long.class)
+                    .setParameter("emp", reg.getEmpleado())
+                    .setParameter("fecha", reg.getFecha())
+                    .setParameter("estado", com.sta.biometric.enums.EstadoLiquidacion.CERRADO)
+                    .getSingleResult();
+            return count != null && count > 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private int parsearHHMM(String valor) {

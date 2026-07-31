@@ -1575,6 +1575,7 @@ public class Personal extends Identifiable {
     @ViewAction("")
     @RowAction("BancoHoras.eliminarMovimiento")
     @ListProperties("fechaCreacion, usuarioOperacion, fechaJornada, tipo, minutosFormateados, saldoAnteriorFormateado, saldoNuevoFormateado, observacion")
+    @OrderBy("fechaJornada desc")
     public Collection<MovimientoBancoHoras> getMovimientosBancoHoras() {
         return BancoHorasService.obtenerMovimientosBanco(this);
     }

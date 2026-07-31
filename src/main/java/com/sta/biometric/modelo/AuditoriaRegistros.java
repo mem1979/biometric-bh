@@ -57,7 +57,7 @@ import lombok.*;
         "nota;" +
         "}")
 
-@Tab(editors = "List", properties = "empleado.nombreCompleto, diaSemana, fecha, horario, evaluacion, estadoJornada, enBanco, empleado.sucursal.nombre", defaultOrder = "${fecha} desc, ${empleado.sucursal.nombre} asc, ${empleado.nombreCompleto} asc", rowStyles = {
+@Tab(editors = "List", properties = "empleado.nombreCompleto, diaSemana, fecha, horario, evaluacion, estadoJornada, enBanco, empleado.sucursal.nombre, nota", defaultOrder = "${fecha} desc, ${empleado.sucursal.nombre} asc, ${empleado.nombreCompleto} asc", rowStyles = {
         @RowStyle(style = "estilo-violeta-claro", property = "enBanco", value = "true"),
         @RowStyle(style = "estilo-gris-claro", property = "evaluacion", value = "PENDIENTE"),
         @RowStyle(style = "estilo-gris-intenso", property = "evaluacion", value = "EN_CURSO"),
@@ -1164,82 +1164,195 @@ public class AuditoriaRegistros extends Identifiable {
         setNota(sb.toString());
     }
 
+    // ==================================================================================
+    // CÁLCULO CENTRALIZADO DE HORAS LIQUIDADAS
+    // ==================================================================================
+
+    /**
+     * Método centralizado que calcula los minutos liquidados finales para cada
+     * categoría de hora.
+     * 
+     * <p>
+     * Implementa la fórmula invariante del dominio:
+     * </p>
+     * <pre>
+     *   Horas Liquidadas = Base + Ajuste Manual + Ajuste Redondeo
+     * </pre>
+     * 
+     * <p>
+     * La <b>base</b> se determina según el tipo de jornada:
+     * </p>
+     * <ul>
+     * <li>Jornada Especial ({@code FERIADO_TRABAJADO}): todo el tiempo va a
+     * Especiales; Normales y Extras base = 0.</li>
+     * <li>Jornada Normal: Normales = min(trabajados, esperados) o esperados si
+     * completa; Extras = excedente sobre el turno.</li>
+     * </ul>
+     * 
+     * <p>
+     * Los ajustes <b>siempre</b> se suman a la base independientemente del tipo
+     * de jornada, permitiendo la redistribución manual entre categorías.
+     * </p>
+     * 
+     * <p>
+     * <b>IMPORTANTE:</b> Este método opera sobre datos que deben estar
+     * previamente validados (Σ ajustes = 0, ninguna categoría negativa). Un
+     * resultado negativo indica un error de validación previo y NO se corrige
+     * silenciosamente.
+     * </p>
+     * 
+     * @param tipo Categoría de hora a calcular
+     * @return Minutos liquidados finales para la categoría solicitada
+     * @see TipoHoraCalculo
+     */
+    private int calcularMinutosLiquidados(TipoHoraCalculo tipo) {
+        int base = 0;
+        int ajusteManual = 0;
+        int ajusteRedondeo = 0;
+
+        switch (tipo) {
+            case NORMALES:
+                ajusteManual = ajusteMinutosNormales;
+                ajusteRedondeo = ajusteRedondeoNormales;
+
+                if (esJornadaEspecial()) {
+                    // En jornada especial la base normal es 0; los ajustes
+                    // permiten redistribuir horas hacia esta categoría.
+                    base = 0;
+                } else if (licenciaParcial && minutosImputadosLicencia > 0) {
+                    // Licencia parcial: sumar horas imputadas + horas trabajadas
+                    int totalCombinado = minutosImputadosLicencia + minutosTrabajados;
+                    // No exceder los minutos esperados del turno
+                    base = Math.min(totalCombinado, minutosEsperados);
+                } else if (minutosImputadosLicencia > 0) {
+                    // Licencia total con goce: usar solo los imputados
+                    base = minutosImputadosLicencia;
+                } else {
+                    // Lógica normal de fichajes
+                    if (minutosTrabajados >= (minutosEsperados - toleranciaMinutos)) {
+                        base = minutosEsperados;
+                    } else {
+                        base = Math.min(minutosTrabajados, minutosEsperados);
+                    }
+                }
+                break;
+
+            case EXTRAS:
+                ajusteManual = ajusteMinutosExtras;
+                ajusteRedondeo = ajusteRedondeoExtras;
+                // En jornada especial la base extra es 0; los ajustes
+                // permiten redistribuir horas hacia esta categoría.
+                base = esJornadaEspecial() ? 0 : minutosExtras;
+                break;
+
+            case ESPECIALES:
+                ajusteManual = ajusteMinutosEspeciales;
+                ajusteRedondeo = ajusteRedondeoEspeciales;
+                // En jornada especial todo el tiempo trabajado es la base;
+                // en jornada normal la base especial es 0.
+                base = esJornadaEspecial() ? minutosTrabajados : 0;
+                break;
+        }
+
+        return base + ajusteManual + ajusteRedondeo;
+    }
+
+    /**
+     * Retorna los minutos liquidados finales para una categoría específica de hora.
+     * Accesor público del dominio para servicios y acciones de validación.
+     * 
+     * @param tipo Categoría de hora (NORMALES, EXTRAS, ESPECIALES)
+     * @return Minutos liquidados calculados
+     */
+    public int getMinutosLiquidados(TipoHoraCalculo tipo) {
+        return calcularMinutosLiquidados(tipo);
+    }
+
+    /**
+     * Verifica si la suma de los ajustes manuales es exactamente cero (invariante de conservación).
+     * 
+     * @return {@code true} si la suma de ajustes manuales es 0
+     */
+    @Transient
+    public boolean esAjusteBalanceado() {
+        return (ajusteMinutosNormales + ajusteMinutosExtras + ajusteMinutosEspeciales) == 0;
+    }
+
+    /**
+     * Retorna el saldo neto de los ajustes manuales en minutos.
+     * Un valor distinto de cero indica un desbalance en la redistribución.
+     * 
+     * @return Suma de minutos de ajustes manuales (positivo o negativo)
+     */
+    @Transient
+    public int getDiferenciaAjustes() {
+        return ajusteMinutosNormales + ajusteMinutosExtras + ajusteMinutosEspeciales;
+    }
+
+    /**
+     * Verifica si alguna categoría de hora liquidada resulta en valor negativo.
+     * 
+     * @return {@code true} si al menos una categoría tiene minutos liquidados < 0
+     */
+    @Transient
+    public boolean tieneHorasLiquidadasNegativas() {
+        return calcularMinutosLiquidados(TipoHoraCalculo.NORMALES) < 0
+                || calcularMinutosLiquidados(TipoHoraCalculo.EXTRAS) < 0
+                || calcularMinutosLiquidados(TipoHoraCalculo.ESPECIALES) < 0;
+    }
+
     /**
      * Retorna las horas trabajadas dentro del horario normal del turno.
      * 
      * <p>
-     * Para licencias parciales, suma las horas imputadas con las trabajadas.
-     * Para licencias totales, usa solo las imputadas.
+     * Delega al método centralizado {@link #calcularMinutosLiquidados} que
+     * considera licencias, jornadas especiales y ajustes de redistribución.
      * </p>
      * 
-     * @return Horas normales en formato "HH:MM"
+     * @return Horas normales liquidadas en formato "HH:MM"
      */
     @Transient
     @ReadOnly
     @DisplaySize(10)
     @MiLabel(medida = "mediana", negrita = true, recuadro = true, icon = "alarm")
     public String getHorasTrabajadasTurno() {
-        if (esJornadaEspecial())
-            return "00:00";
-
-        // Licencia parcial: sumar horas imputadas + horas trabajadas
-        if (licenciaParcial && minutosImputadosLicencia > 0) {
-            int totalCombinado = minutosImputadosLicencia + minutosTrabajados;
-            // No exceder los minutos esperados del turno
-            totalCombinado = Math.min(totalCombinado, minutosEsperados);
-            return TiempoUtils.formatearMinutosComoHHMM(totalCombinado);
-        }
-
-        // Licencia total con goce: usar solo los imputados
-        if (minutosImputadosLicencia > 0) {
-            return TiempoUtils.formatearMinutosComoHHMM(minutosImputadosLicencia);
-        }
-
-        // Lógica normal de fichajes
-        int minutosNormalesBase;
-        if (minutosTrabajados >= (minutosEsperados - toleranciaMinutos)) {
-            minutosNormalesBase = minutosEsperados;
-        } else {
-            minutosNormalesBase = Math.min(minutosTrabajados, minutosEsperados);
-        }
-
-        // Incluir ambos ajustes: manual + redondeo automático
-        int totalMinutos = Math.max(0, minutosNormalesBase + ajusteMinutosNormales + ajusteRedondeoNormales);
-        return TiempoUtils.formatearMinutosComoHHMM(totalMinutos);
+        return TiempoUtils.formatearMinutosComoHHMM(calcularMinutosLiquidados(TipoHoraCalculo.NORMALES));
     }
 
     /**
      * Retorna las horas extras trabajadas (fuera del horario normal).
      * 
-     * @return Horas extras en formato "HH:MM"
+     * <p>
+     * Delega al método centralizado {@link #calcularMinutosLiquidados} que
+     * considera jornadas especiales y ajustes de redistribución.
+     * </p>
+     * 
+     * @return Horas extras liquidadas en formato "HH:MM"
      */
     @Transient
     @ReadOnly
     @DisplaySize(10)
     @MiLabel(medida = "mediana", negrita = true, recuadro = true, icon = "alarm-plus")
     public String getHorasExtras() {
-        if (esJornadaEspecial())
-            return "00:00";
-        // Minutos extras calculados + Ajuste manual + Ajuste redondeo
-        int totalExtras = Math.max(0, minutosExtras + ajusteMinutosExtras + ajusteRedondeoExtras);
-        return TiempoUtils.formatearMinutosComoHHMM(totalExtras);
+        return TiempoUtils.formatearMinutosComoHHMM(calcularMinutosLiquidados(TipoHoraCalculo.EXTRAS));
     }
 
     /**
-     * Retorna las horas trabajadas en días especiales (feriados, domingos).
+     * Retorna las horas trabajadas en días especiales (feriados nacionales).
      * 
-     * @return Horas especiales en formato "HH:MM"
+     * <p>
+     * Delega al método centralizado {@link #calcularMinutosLiquidados} que
+     * considera jornadas especiales y ajustes de redistribución.
+     * </p>
+     * 
+     * @return Horas especiales liquidadas en formato "HH:MM"
      */
     @Transient
     @ReadOnly
     @DisplaySize(10)
     @MiLabel(medida = "mediana", negrita = true, recuadro = true, icon = "alarm-multiple")
     public String getHorasEspeciales() {
-        // En feriados/días no laborales, todo el tiempo es especial
-        int base = esJornadaEspecial() ? minutosTrabajados : 0;
-        // Incluir ambos ajustes: manual + redondeo automático
-        int total = Math.max(0, base + ajusteMinutosEspeciales + ajusteRedondeoEspeciales);
-        return TiempoUtils.formatearMinutosComoHHMM(total);
+        return TiempoUtils.formatearMinutosComoHHMM(calcularMinutosLiquidados(TipoHoraCalculo.ESPECIALES));
     }
 
     // ==================================================================================
@@ -1302,10 +1415,24 @@ public class AuditoriaRegistros extends Identifiable {
      */
     @Transient
     @ElementCollection
-    @ListProperties("tipo, valorHora, horasRegistradas, ajuste, total+")
+    @ListProperties("tipo, valorHora, horasRegistradas, ajuste, bancoHoras, total+")
     @RemoveSelectedAction("AuditoriaRegistros.ajustarHorasPorTipo")
     public List<FilaCalculo> getFilasCalculo() {
         List<FilaCalculo> filas = new ArrayList<>();
+
+        // Formateo visual del descuento de banco por categoría
+        String bancoNormales = "-";
+        String bancoExtras = "-";
+        String bancoEspeciales = "-";
+
+        if (minutosEnviadosAlBanco > 0) {
+            String descuentoStr = "-" + TiempoUtils.formatearMinutosComoHHMM(minutosEnviadosAlBanco);
+            if (esJornadaEspecial()) {
+                bancoEspeciales = descuentoStr;
+            } else {
+                bancoExtras = descuentoStr;
+            }
+        }
 
         // Fila: Horas Normales
         filas.add(new FilaCalculo(
@@ -1313,6 +1440,7 @@ public class AuditoriaRegistros extends Identifiable {
                 getValorHoraNormalDisplay(),
                 getHorasBaseNormales(),
                 getAjusteNormalesDisplay(),
+                bancoNormales,
                 getTotalHorasTurno()));
 
         // Fila: Horas Extras
@@ -1321,6 +1449,7 @@ public class AuditoriaRegistros extends Identifiable {
                 getValorHoraExtraDisplay(),
                 getHorasBaseExtras(),
                 getAjusteExtrasDisplay(),
+                bancoExtras,
                 getTotalHorasExtras()));
 
         // Fila: Horas Especiales
@@ -1329,6 +1458,7 @@ public class AuditoriaRegistros extends Identifiable {
                 getValorHoraEspecialDisplay(),
                 getHorasBaseEspeciales(),
                 getAjusteEspecialesDisplay(),
+                bancoEspeciales,
                 getTotalHorasEspeciales()));
 
         return filas;

@@ -225,16 +225,19 @@ public class LiquidacionJornadaService {
             int enviadosBanco = registro.getMinutosEnviadosAlBanco();
 
             if (enviadosBanco > 0) {
+                int aRestar = enviadosBanco;
                 // Si la jornada tiene horas especiales (ej: feriados), restar prioritariamente de especiales
                 if (minEspeciales > 0) {
-                    minEspeciales = Math.max(0, minEspeciales - enviadosBanco);
-                } else {
-                    // Extras enviadas al banco → restar de extras (no se pagan en recibo)
-                    minExtras = Math.max(0, minExtras - enviadosBanco);
+                    int restarEsp = Math.min(minEspeciales, aRestar);
+                    minEspeciales -= restarEsp;
+                    aRestar -= restarEsp;
                 }
-            } else if (enviadosBanco < 0) {
-                // Faltantes/ausencias enviadas al banco → compensar normales (no se descuentan)
-                minNormales = minNormales + Math.abs(enviadosBanco);
+                // Si aún quedan minutos a restar (o la jornada no tenía especiales), restar de extras
+                if (aRestar > 0 && minExtras > 0) {
+                    int restarExt = Math.min(minExtras, aRestar);
+                    minExtras -= restarExt;
+                    aRestar -= restarExt;
+                }
             }
 
             totalNormales += minNormales;

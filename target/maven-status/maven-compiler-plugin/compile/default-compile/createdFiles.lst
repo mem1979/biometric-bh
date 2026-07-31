@@ -5,6 +5,7 @@ com\sta\biometric\acciones\LicenciaRemoveAction.class
 com\sta\biometric\calculadores\CalculadorCodigoAreaDefault.class
 com\sta\biometric\servicios\InterpreteFichadasService$ResultadoValidacion.class
 com\sta\biometric\qartzJobs\AperturaJornadaJob.class
+com\sta\biometric\enums\TipoHoraCalculo.class
 com\sta\biometric\auxiliares\Licencia$2.class
 com\sta\biometric\formateadores\Capitalizar.class
 com\sta\biometric\rest\HikvisionSocketListener.class

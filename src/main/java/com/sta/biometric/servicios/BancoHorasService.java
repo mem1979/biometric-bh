@@ -75,7 +75,7 @@ public class BancoHorasService {
         EntityManager em = XPersistence.getManager();
         try {
             return em.createQuery(
-                    "SELECT m FROM MovimientoBancoHoras m WHERE m.bancoHoras.empleado = :emp ORDER BY m.fechaCreacion DESC",
+                    "SELECT m FROM MovimientoBancoHoras m WHERE m.bancoHoras.empleado = :emp ORDER BY m.fechaJornada DESC, m.fechaCreacion DESC",
                     MovimientoBancoHoras.class)
                     .setParameter("emp", empleado)
                     .getResultList();
