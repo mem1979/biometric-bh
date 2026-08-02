@@ -68,6 +68,7 @@ C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\acci
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\acciones\RevertirRedondeoMasivoAction.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\acciones\TurnosHorariosOnChangeDiaAction.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\acciones\TurnosHorariosOnChangeTurnoAction.java
+C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\acciones\VerDetalleMovimientoBancoAction.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\acciones\VerJornadasLiquidacionAction.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\acciones\VerMapaAction.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\acciones\VolverAPersonalAction.java
@@ -75,8 +76,10 @@ C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\anot
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\anotaciones\Capitalizar.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\anotaciones\Mayuscula.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\anotaciones\MiLabel.java
+C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\DetalleIncidenciaPresentismo.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\Dni.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\Feriados.java
+C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\HorasNetasJornada.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\ImportadorFichadas.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\Licencia.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\LicenciaBypassThreadLocal.java
@@ -84,7 +87,9 @@ C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxi
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\Localidades.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\Nacionalidades.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\Partidos.java
+C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\PresentismoProperties.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\Provincias.java
+C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\ResultadoPresentismoPeriodo.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\Sucursales.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\TurnosHorarios.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\calculadores\CalculadorCodigoAreaDefault.java
@@ -123,6 +128,7 @@ C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\enum
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\enums\Signo.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\enums\TipoContrato.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\enums\TipoHoraCalculo.java
+C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\enums\TipoIncidenciaPresentismo.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\enums\TipoLicenciaAR.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\enums\TipoMovimiento.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\enums\TipoMovimientoBancoHoras.java
@@ -181,6 +187,7 @@ C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\serv
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\LectorArchivoService.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\LicenciaRecalculacionService.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\LiquidacionJornadaService.java
+C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\PresentismoService.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\RedondeoHorasService.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\ResumenAsistenciaHoyService.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\VacacionesPeriodoService.java

@@ -33,6 +33,9 @@ import lombok.Setter;
 })
 @Getter
 @Setter
+@View(name = "DetalleDialogo", members = "fechaJornada, tipo, usuarioOperacion, fechaCreacion;" +
+        "Saldos { minutosFormateados, saldoAnteriorFormateado, saldoNuevoFormateado, presentismoDisplay };" +
+        "observacion")
 public class MovimientoBancoHoras extends Identifiable {
 
     /**
@@ -160,6 +163,24 @@ public class MovimientoBancoHoras extends Identifiable {
     @Transient
     public String getSaldoNuevoFormateado() {
         return formatearMinutos(saldoNuevo);
+    }
+
+    /**
+     * Muestra COMPUTA, NO COMPUTA o - para auditoría en las colecciones del Banco de Horas.
+     */
+    @Transient
+    @ReadOnly
+    public String getPresentismoDisplay() {
+        if (auditoriaRegistro != null) {
+            return auditoriaRegistro.getPresentismoBancoDisplay();
+        }
+        if (observacion != null && observacion.contains("Presentismo: COMPUTA")) {
+            return "COMPUTA";
+        }
+        if (observacion != null && observacion.contains("Presentismo: NO COMPUTA")) {
+            return "NO COMPUTA";
+        }
+        return "-";
     }
 
     private String formatearMinutos(int totalMinutos) {

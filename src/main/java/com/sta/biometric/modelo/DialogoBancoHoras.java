@@ -18,6 +18,7 @@ import lombok.Setter;
 @View(members = "infoRegistro, evaluacionJornada; " +
         "Diferencia [diferenciaTotal, yaEnviado, disponible]; " +
         "EnvioBanco [signo, minutosAEnviar, saldoActual]; " +
+        "descontarPresentismo; " +
         "observacion")
 public class DialogoBancoHoras {
 
@@ -73,6 +74,11 @@ public class DialogoBancoHoras {
      */
     @ReadOnly
     private String saldoActual;
+
+    /**
+     * Indicates whether sending to bank computes as presenteeism penalty (Checkbox).
+     */
+    private boolean descontarPresentismo = false;
 
     /**
      * Motivo u observación obligatoria de la asignación.

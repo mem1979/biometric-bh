@@ -9,7 +9,9 @@ import org.openxava.annotations.*;
 import org.openxava.model.*;
 
 import com.sta.biometric.anotaciones.*;
+import com.sta.biometric.auxiliares.*;
 import com.sta.biometric.enums.*;
+import com.sta.biometric.servicios.*;
 
 import lombok.*;
 
@@ -68,17 +70,28 @@ import lombok.*;
         "};" +
         "Metadatos { fechaGeneracion, fechaUltimoRecalculo, fechaModificacion; observaciones; }")
 
-// Vista unificada para el diálogo que incluye la colección de jornadas (usada
-// desde Personal)
-@View(name = "DetalleCompletoDialogo", members = "periodoDesde, periodoHasta, estadoPeriodo;" +
-        "horasNormalesFormatted, horasExtrasFormatted, horasEspecialesFormatted, montoGranTotal;" +
-        "jornadasDelPeriodo;" +
-        "Metadatos { fechaGeneracion, fechaUltimoRecalculo, fechaModificacion; observaciones; }")
+/**
+ * // Vista unificada para el diálogo que incluye la colección de jornadas
+ * (usada
+ * // desde Personal)
+ * 
+ * @View(name = "DetalleCompletoDialogo", members = "periodoDesde, periodoHasta,
+ *            estadoPeriodo;" +
+ *            "horasNormalesFormatted, horasExtrasFormatted,
+ *            horasEspecialesFormatted;" +
+ *            "ControlPresentismo [presentismoDisplay;
+ *            motivoPresentismoDisplay];" +
+ *            "montoGranTotal;" +
+ *            "jornadasDelPeriodo;" +
+ *            "Metadatos { fechaGeneracion, fechaUltimoRecalculo,
+ *            fechaModificacion; observaciones; }")
+ */
 
 // Vista simplificada sin la colección (para evitar conflictos en listas)
 @View(name = "DetalleCompleto", members = "Periodo { periodoDesde, periodoHasta, estadoPeriodo; " +
         "horasNormalesFormatted, horasExtrasFormatted, horasEspecialesFormatted, montoGranTotal; };" +
-        "Metadatos { fechaGeneracion; observaciones; }")
+        "Metadatos { fechaGeneracion; observaciones; };" +
+        "ControlPresentismo [presentismoDisplay; motivoPresentismoDisplay]")
 
 // Vista exclusiva para el diálogo de jornadas
 @View(name = "SoloJornadas", members = "jornadasDelPeriodo")
@@ -320,14 +333,14 @@ public class LiquidacionJornadas extends Identifiable {
     @ReadOnly
     @NoDefaultActions
     @ListAction("LiquidacionJornadas.exportarJornadasExcel")
-    @ListProperties("empleado.nombreCompleto, fecha, turnoPlanificado, horario, estadoJornada, horasTrabajadasTurno, horasExtras, horasEspeciales")
+    @ListProperties("fecha, turnoPlanificado, horario, evaluacion, horasALiquidarNormales, horasALiquidarExtras, horasALiquidarEspeciales, bancoHorasDisplay")
     public java.util.List<AuditoriaRegistros> getJornadasDelPeriodo() {
         if (empleado == null || periodoDesde == null || periodoHasta == null) {
             return java.util.Collections.emptyList();
         }
 
         try {
-            return org.openxava.jpa.XPersistence.getManager()
+            java.util.List<AuditoriaRegistros> lista = org.openxava.jpa.XPersistence.getManager()
                     .createQuery(
                             "SELECT a FROM AuditoriaRegistros a " +
                                     "WHERE a.empleado = :emp " +
@@ -339,6 +352,14 @@ public class LiquidacionJornadas extends Identifiable {
                     .setParameter("desde", periodoDesde)
                     .setParameter("hasta", periodoHasta)
                     .getResultList();
+
+            for (AuditoriaRegistros a : lista) {
+                com.sta.biometric.auxiliares.HorasNetasJornada netas = com.sta.biometric.servicios.LiquidacionJornadaService
+                        .calcularHorasNetasJornada(a);
+                a.cargarHorasNetasPresentacion(netas);
+            }
+
+            return lista;
         } catch (Exception e) {
             return java.util.Collections.emptyList();
         }
@@ -433,6 +454,50 @@ public class LiquidacionJornadas extends Identifiable {
         this.estadoPeriodo = EstadoLiquidacion.RECALCULADO;
         this.fechaUltimoRecalculo = LocalDateTime.now();
         this.fechaModificacion = LocalDateTime.now();
+    }
+
+    // ==================================================================================
+    // PRESENTISMO Y ADICIONALES
+    // ==================================================================================
+
+    /**
+     * Evalúa el resultado del presentismo para las jornadas de este período.
+     * 
+     * @return DTO {@link ResultadoPresentismoPeriodo}
+     */
+    @Transient
+    @ReadOnly
+    public ResultadoPresentismoPeriodo getResultadoPresentismo() {
+        return PresentismoService.evaluarPresentismo(getJornadasDelPeriodo());
+    }
+
+    /**
+     * Formatea el estado del presentismo para renderizar en UI y reportes.
+     * 
+     * @return Texto formateado con ícono e indicador
+     */
+    @Transient
+    @ReadOnly
+    @Label
+    @LabelFormat(LabelFormatType.NO_LABEL)
+    public String getPresentismoDisplay() {
+        ResultadoPresentismoPeriodo res = getResultadoPresentismo();
+        return res != null ? res.getEstadoFormatted() : "-";
+    }
+
+    /**
+     * Retorna el motivo detallado de la pérdida del presentismo si corresponde.
+     */
+    @Transient
+    @ReadOnly
+    @Label
+    @LabelFormat(LabelFormatType.NO_LABEL)
+    public String getMotivoPresentismoDisplay() {
+        ResultadoPresentismoPeriodo res = getResultadoPresentismo();
+        if (res != null && !res.isCumplePresentismo()) {
+            return "Motivo: " + res.getMotivoDetalladoPerdida();
+        }
+        return "";
     }
 
     // ==================================================================================

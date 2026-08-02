@@ -47,6 +47,22 @@ public class ConfirmarEnvioBancoHorasAction extends ViewBaseAction {
             return;
         }
 
+        boolean esConsumoBanco = (signo != null && signo.esNegativo());
+
+        if (esConsumoBanco) {
+            Boolean descontarPres = (Boolean) getView().getValue("descontarPresentismo");
+            boolean descontarPresentismoVal = (descontarPres != null) ? descontarPres : false;
+            registro.setDescontarPresentismo(descontarPresentismoVal);
+
+            // Formatear nota auditada sin duplicar marcas previas de Presentismo:
+            String marcaPresentismo = descontarPresentismoVal ? "Presentismo: COMPUTA." : "Presentismo: NO COMPUTA.";
+            if (observacion.contains("Presentismo:")) {
+                observacion = observacion.replaceAll("Presentismo:.*", marcaPresentismo);
+            } else {
+                observacion = observacion.trim() + "\n" + marcaPresentismo;
+            }
+        }
+
         int multiplicador = (signo != null && signo.esNegativo()) ? -1 : 1;
         int minutosConSigno = multiplicador * minutosParsed;
 

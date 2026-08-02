@@ -1572,9 +1572,10 @@ public class Personal extends Identifiable {
     @Transient
     @NoDefaultActions
     @ReadOnly
-    @ViewAction("")
+    @ViewAction("BancoHoras.verMovimiento")
+    @RowAction("BancoHoras.verMovimiento")
     @RowAction("BancoHoras.eliminarMovimiento")
-    @ListProperties("fechaCreacion, usuarioOperacion, fechaJornada, tipo, minutosFormateados, saldoAnteriorFormateado, saldoNuevoFormateado, observacion")
+    @ListProperties("fechaJornada, tipo, minutosFormateados, saldoNuevoFormateado, presentismoDisplay, observacion")
     @OrderBy("fechaJornada desc")
     public Collection<MovimientoBancoHoras> getMovimientosBancoHoras() {
         return BancoHorasService.obtenerMovimientosBanco(this);

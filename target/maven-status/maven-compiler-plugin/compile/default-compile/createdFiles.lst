@@ -5,6 +5,7 @@ com\sta\biometric\acciones\LicenciaRemoveAction.class
 com\sta\biometric\calculadores\CalculadorCodigoAreaDefault.class
 com\sta\biometric\servicios\InterpreteFichadasService$ResultadoValidacion.class
 com\sta\biometric\qartzJobs\AperturaJornadaJob.class
+com\sta\biometric\auxiliares\ResultadoPresentismoPeriodo.class
 com\sta\biometric\enums\TipoHoraCalculo.class
 com\sta\biometric\auxiliares\Licencia$2.class
 com\sta\biometric\formateadores\Capitalizar.class
@@ -26,6 +27,7 @@ com\sta\biometric\dashboard\auxiliares\ItemGraficoPorcentageAgentesDashboard.cla
 com\sta\biometric\rest\AsistenciaEndpoint$MovimientoRequest.class
 com\sta\biometric\acciones\VolverAPersonalAction.class
 com\sta\biometric\acciones\MostrarDialogoRedondeoAction.class
+com\sta\biometric\auxiliares\DetalleIncidenciaPresentismo.class
 com\sta\biometric\enums\NivelJerarquico.class
 com\sta\biometric\acciones\GenerarLiquidacionAction.class
 com\sta\biometric\acciones\TurnosHorariosOnChangeDiaAction.class
@@ -35,10 +37,10 @@ com\sta\biometric\acciones\ExportarJornadasExcelAction.class
 com\sta\biometric\servlets\DownloadExcelServlet.class
 com\sta\biometric\acciones\FeriadoAgregarNuevoFeriado.class
 com\sta\biometric\servicios\RedondeoHorasService$1.class
-com\sta\biometric\acciones\ExportarJornadasExcelAction$TotalesResumen.class
 com\sta\biometric\enums\Signo.class
 com\sta\biometric\qartzJobs\ApplicationQuartzInitializer.class
 com\sta\biometric\acciones\TurnosHorariosOnChangeTurnoAction.class
+com\sta\biometric\auxiliares\PresentismoProperties.class
 com\sta\biometric\acciones\LicenciasGenerateReportAction.class
 com\sta\biometric\acciones\RevertirMovimientoBancoAction.class
 com\sta\biometric\dashboard\auxiliares\ResumenEmpleadoHoy$1.class
@@ -69,6 +71,7 @@ com\sta\biometric\acciones\HabilitarEdicionLicenciaAction.class
 com\sta\biometric\servicios\AnalisisDesempenoService.class
 com\sta\biometric\enums\Parentescos.class
 com\sta\biometric\modelo\DialogoReversionBanco.class
+com\sta\biometric\servicios\PresentismoService.class
 com\sta\biometric\servicios\LiquidacionJornadaService.class
 com\sta\biometric\acciones\BlanquearDeviceIdAction.class
 com\sta\biometric\acciones\ConfirmarEnvioBancoHorasAction.class
@@ -155,12 +158,15 @@ com\sta\biometric\dashboard\auxiliares\LicenciaResumenPorTipo.class
 com\sta\biometric\dto\DatosDesempenoDTO.class
 com\sta\biometric\rest\RegistrosMesualesEndpoint.class
 com\sta\biometric\acciones\CompletarObservacionLicenciaAction$1.class
+com\sta\biometric\acciones\VerDetalleMovimientoBancoAction.class
 com\sta\biometric\formateadores\TiempoUtils.class
+com\sta\biometric\auxiliares\HorasNetasJornada.class
 com\sta\biometric\acciones\ConfirmarCambioLegajoAction.class
 com\sta\biometric\acciones\VerJornadasLiquidacionAction.class
 com\sta\biometric\modelo\ConfiguracionRedondeo.class
 com\sta\biometric\enums\ModoComputoLicencia.class
 com\sta\biometric\acciones\PersonalInformeAnualAction.class
+com\sta\biometric\enums\TipoIncidenciaPresentismo.class
 com\sta\biometric\acciones\ObtenerCoordenadasGenericaAction.class
 com\sta\biometric\modelo\MovimientoBancoHoras.class
 com\sta\biometric\acciones\AbrirImportadorAction.class

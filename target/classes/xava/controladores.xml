@@ -351,6 +351,7 @@ https://github.com/openxava/openxava/blob/master/openxavatest/src/main/resources
 
     <!-- Controlador para la colección de movimientos del Banco de Horas en Legajo -->
     <controlador nombre="BancoHoras">
+        <accion nombre="verMovimiento" modo="list" clase="com.sta.biometric.acciones.VerDetalleMovimientoBancoAction" icono="eye" en-cada-fila="true"/>
         <accion nombre="eliminarMovimiento" modo="list" procesar-elementos-seleccionados="true" clase="com.sta.biometric.acciones.EliminarMovimientoBancoAction" icono="delete" confirmar="true" en-cada-fila="true"/>
     </controlador>
 

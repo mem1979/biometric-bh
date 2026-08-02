@@ -196,6 +196,52 @@ public class LiquidacionJornadaService {
     // ==================================================================================
 
     /**
+     * Calcula el resultado neto oficial de horas a liquidar para una jornada individual,
+     * aplicando la política del Banco de Horas (descuento asimétrico).
+     * 
+     * <p>
+     * <b>Única Fuente de Verdad:</b> Este método concentra la regla oficial consumida por:
+     * </p>
+     * <ul>
+     * <li>Acumulación del período en {@link LiquidacionJornadas}</li>
+     * <li>Presentación en diálogo "Ver Jornadas"</li>
+     * <li>Exportación a Excel</li>
+     * </ul>
+     * 
+     * @param registro Registro de Auditoría de la jornada
+     * @return DTO inmutable {@link HorasNetasJornada} con los minutos netos a liquidar
+     */
+    public static com.sta.biometric.auxiliares.HorasNetasJornada calcularHorasNetasJornada(AuditoriaRegistros registro) {
+        if (registro == null) {
+            return new com.sta.biometric.auxiliares.HorasNetasJornada(0, 0, 0);
+        }
+
+        int minNormales = registro.getMinutosLiquidados(TipoHoraCalculo.NORMALES);
+        int minExtras = registro.getMinutosLiquidados(TipoHoraCalculo.EXTRAS);
+        int minEspeciales = registro.getMinutosLiquidados(TipoHoraCalculo.ESPECIALES);
+
+        int enviadosBanco = registro.getMinutosEnviadosAlBanco();
+
+        if (enviadosBanco > 0) {
+            int aRestar = enviadosBanco;
+            // Si la jornada tiene horas especiales (ej: feriados), restar prioritariamente de especiales
+            if (minEspeciales > 0) {
+                int restarEsp = Math.min(minEspeciales, aRestar);
+                minEspeciales -= restarEsp;
+                aRestar -= restarEsp;
+            }
+            // Si aún quedan minutos a restar (o la jornada no tenía especiales), restar de extras
+            if (aRestar > 0 && minExtras > 0) {
+                int restarExt = Math.min(minExtras, aRestar);
+                minExtras -= restarExt;
+                aRestar -= restarExt;
+            }
+        }
+
+        return new com.sta.biometric.auxiliares.HorasNetasJornada(minNormales, minExtras, minEspeciales);
+    }
+
+    /**
      * Calcula las horas desde AuditoriaRegistros y las asigna a la liquidación.
      */
     private static void calcularHorasDesdeAuditoria(LiquidacionJornadas liquidacion, EntityManager em) {
@@ -218,31 +264,10 @@ public class LiquidacionJornadaService {
         int totalEspeciales = 0;
 
         for (AuditoriaRegistros registro : registros) {
-            int minNormales = convertirHHMMaMinutos(registro.getHorasTrabajadasTurno());
-            int minExtras = convertirHHMMaMinutos(registro.getHorasExtras());
-            int minEspeciales = convertirHHMMaMinutos(registro.getHorasEspeciales());
-
-            int enviadosBanco = registro.getMinutosEnviadosAlBanco();
-
-            if (enviadosBanco > 0) {
-                int aRestar = enviadosBanco;
-                // Si la jornada tiene horas especiales (ej: feriados), restar prioritariamente de especiales
-                if (minEspeciales > 0) {
-                    int restarEsp = Math.min(minEspeciales, aRestar);
-                    minEspeciales -= restarEsp;
-                    aRestar -= restarEsp;
-                }
-                // Si aún quedan minutos a restar (o la jornada no tenía especiales), restar de extras
-                if (aRestar > 0 && minExtras > 0) {
-                    int restarExt = Math.min(minExtras, aRestar);
-                    minExtras -= restarExt;
-                    aRestar -= restarExt;
-                }
-            }
-
-            totalNormales += minNormales;
-            totalExtras += minExtras;
-            totalEspeciales += minEspeciales;
+            com.sta.biometric.auxiliares.HorasNetasJornada netas = calcularHorasNetasJornada(registro);
+            totalNormales += netas.getMinutosNormales();
+            totalExtras += netas.getMinutosExtras();
+            totalEspeciales += netas.getMinutosEspeciales();
         }
 
         liquidacion.setTotalMinutosNormales(totalNormales);
@@ -250,23 +275,5 @@ public class LiquidacionJornadaService {
         liquidacion.setTotalMinutosEspeciales(totalEspeciales);
     }
 
-    /**
-     * Convierte formato HH:MM a minutos totales.
-     * 
-     * @param hhMM String en formato "HH:MM"
-     * @return Total de minutos
-     */
-    private static int convertirHHMMaMinutos(String hhMM) {
-        if (hhMM == null || hhMM.isEmpty() || hhMM.equals("00:00")) {
-            return 0;
-        }
-        try {
-            String[] partes = hhMM.split(":");
-            int horas = Integer.parseInt(partes[0]);
-            int minutos = Integer.parseInt(partes[1]);
-            return (horas * 60) + minutos;
-        } catch (Exception e) {
-            return 0;
-        }
-    }
+
 }

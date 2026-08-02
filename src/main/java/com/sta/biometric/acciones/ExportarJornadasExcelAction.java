@@ -1,7 +1,6 @@
 package com.sta.biometric.acciones;
 
 import java.io.*;
-import java.math.*;
 import java.time.format.*;
 import java.util.*;
 
@@ -29,18 +28,6 @@ import com.sta.biometric.modelo.*;
 public class ExportarJornadasExcelAction extends CollectionBaseAction implements IJavaScriptPostAction {
 
     private String javaScript = null;
-
-    // Clase auxiliar para totales
-    private class TotalesResumen {
-        BigDecimal totalMinutosNormales = BigDecimal.ZERO;
-        BigDecimal totalMontoNormales = BigDecimal.ZERO;
-        BigDecimal totalMinutosExtras = BigDecimal.ZERO;
-        BigDecimal totalMontoExtras = BigDecimal.ZERO;
-        BigDecimal totalMinutosEspeciales = BigDecimal.ZERO;
-        BigDecimal totalMontoEspeciales = BigDecimal.ZERO;
-
-        BigDecimal totalGeneral = BigDecimal.ZERO;
-    }
 
     @Override
     public String getPostJavaScript() {
@@ -183,9 +170,6 @@ public class ExportarJornadasExcelAction extends CollectionBaseAction implements
         XSSFWorkbook workbook = new XSSFWorkbook();
         XSSFSheet sheet = workbook.createSheet("Jornadas del Período");
 
-        // Calcular totales
-        TotalesResumen totales = calcularTotales(jornadas);
-
         // Estilos
         CellStyle headerStyle = crearEstiloEncabezado(workbook);
         CellStyle dateStyle = crearEstiloFecha(workbook);
@@ -201,7 +185,7 @@ public class ExportarJornadasExcelAction extends CollectionBaseAction implements
         currentRow = crearEncabezadoPrincipal(sheet, liquidacion, titleStyle, currentRow);
 
         // 2. Tabla de Resumen
-        currentRow = crearTablaResumen(sheet, totales, headerStyle, normalStyle, moneyStyle, boldStyle, moneyBoldStyle,
+        currentRow = crearTablaResumen(sheet, liquidacion, headerStyle, normalStyle, moneyStyle, boldStyle, moneyBoldStyle,
                 currentRow);
 
         // Espacio antes del detalle
@@ -220,50 +204,7 @@ public class ExportarJornadasExcelAction extends CollectionBaseAction implements
         return workbook;
     }
 
-    private TotalesResumen calcularTotales(List<AuditoriaRegistros> jornadas) {
-        TotalesResumen t = new TotalesResumen();
 
-        for (AuditoriaRegistros j : jornadas) {
-            // Sumar montos
-            if (j.getTotalHorasTurno() != null)
-                t.totalMontoNormales = t.totalMontoNormales.add(j.getTotalHorasTurno());
-            if (j.getTotalHorasExtras() != null)
-                t.totalMontoExtras = t.totalMontoExtras.add(j.getTotalHorasExtras());
-            if (j.getTotalHorasEspeciales() != null)
-                t.totalMontoEspeciales = t.totalMontoEspeciales.add(j.getTotalHorasEspeciales());
-
-            // Sumar minutos (parseando HH:mm)
-            t.totalMinutosNormales = t.totalMinutosNormales
-                    .add(new BigDecimal(parsearMinutos(j.getHorasTrabajadasTurno())));
-            t.totalMinutosExtras = t.totalMinutosExtras.add(new BigDecimal(parsearMinutos(j.getHorasExtras())));
-            t.totalMinutosEspeciales = t.totalMinutosEspeciales
-                    .add(new BigDecimal(parsearMinutos(j.getHorasEspeciales())));
-        }
-
-        t.totalGeneral = t.totalMontoNormales.add(t.totalMontoExtras).add(t.totalMontoEspeciales);
-        return t;
-    }
-
-    private int parsearMinutos(String horaHHMM) {
-        if (horaHHMM == null || horaHHMM.trim().isEmpty() || !horaHHMM.contains(":")) {
-            return 0;
-        }
-        try {
-            String[] parts = horaHHMM.split(":");
-            int horas = Integer.parseInt(parts[0]);
-            int minutos = Integer.parseInt(parts[1]);
-            return horas * 60 + minutos;
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
-
-    private String formatearMinutos(BigDecimal totalMinutos) {
-        int minutos = totalMinutos.intValue();
-        int horas = minutos / 60;
-        int mins = minutos % 60;
-        return String.format("%d:%02d", horas, mins);
-    }
 
     private int crearEncabezadoPrincipal(XSSFSheet sheet, LiquidacionJornadas liquidacion, CellStyle titleStyle,
             int startRow) {
@@ -285,58 +226,6 @@ public class ExportarJornadasExcelAction extends CollectionBaseAction implements
         return startRow + 4; // Dejar espacio despues del titulo
     }
 
-    private int crearTablaResumen(XSSFSheet sheet, TotalesResumen t, CellStyle headerStyle, CellStyle normalStyle,
-            CellStyle moneyStyle, CellStyle boldStyle, CellStyle moneyBoldStyle, int startRow) {
-        int currentRow = startRow;
-
-        // Encabezados tabla resumen
-        Row headerRow = sheet.createRow(currentRow++);
-        crearCelda(headerRow, 0, "Concepto", headerStyle);
-        crearCelda(headerRow, 1, "Horas", headerStyle);
-        crearCelda(headerRow, 2, "Valor Hora", headerStyle);
-        crearCelda(headerRow, 3, "Total $", headerStyle);
-
-        // Fila Normales
-        Row rowNormal = sheet.createRow(currentRow++);
-        crearCelda(rowNormal, 0, "Horas Normales", boldStyle);
-        crearCelda(rowNormal, 1, formatearMinutos(t.totalMinutosNormales), normalStyle);
-        crearCelda(rowNormal, 2, calcularValorHora(t.totalMontoNormales, t.totalMinutosNormales), moneyStyle);
-        crearCelda(rowNormal, 3, t.totalMontoNormales.doubleValue(), moneyStyle);
-
-        // Fila Extras
-        Row rowExtra = sheet.createRow(currentRow++);
-        crearCelda(rowExtra, 0, "Horas Extras", boldStyle);
-        crearCelda(rowExtra, 1, formatearMinutos(t.totalMinutosExtras), normalStyle);
-        crearCelda(rowExtra, 2, calcularValorHora(t.totalMontoExtras, t.totalMinutosExtras), moneyStyle);
-        crearCelda(rowExtra, 3, t.totalMontoExtras.doubleValue(), moneyStyle);
-
-        // Fila Especiales
-        Row rowEsp = sheet.createRow(currentRow++);
-        crearCelda(rowEsp, 0, "Horas Especiales", boldStyle);
-        crearCelda(rowEsp, 1, formatearMinutos(t.totalMinutosEspeciales), normalStyle);
-        crearCelda(rowEsp, 2, calcularValorHora(t.totalMontoEspeciales, t.totalMinutosEspeciales), moneyStyle);
-        crearCelda(rowEsp, 3, t.totalMontoEspeciales.doubleValue(), moneyStyle);
-
-        // Fila Total General
-        Row rowTotal = sheet.createRow(currentRow++);
-        crearCelda(rowTotal, 0, "TOTAL GENERAL", boldStyle);
-        crearCelda(rowTotal, 1, "", boldStyle); // Vacío
-        crearCelda(rowTotal, 2, "", boldStyle); // Vacío
-        crearCelda(rowTotal, 3, t.totalGeneral.doubleValue(), moneyBoldStyle);
-
-        return currentRow;
-    }
-
-    private double calcularValorHora(BigDecimal montoTotal, BigDecimal minutosTotales) {
-        if (minutosTotales.compareTo(BigDecimal.ZERO) == 0)
-            return 0.0;
-        // Convertir minutos a horas: minutos / 60
-        BigDecimal horas = minutosTotales.divide(new BigDecimal(60), 4, RoundingMode.HALF_UP);
-        if (horas.compareTo(BigDecimal.ZERO) == 0)
-            return 0.0;
-        return montoTotal.divide(horas, 2, RoundingMode.HALF_UP).doubleValue();
-    }
-
     private void crearCelda(Row row, int col, Object valor, CellStyle style) {
         Cell cell = row.createCell(col);
         if (valor instanceof String)
@@ -344,17 +233,65 @@ public class ExportarJornadasExcelAction extends CollectionBaseAction implements
         else if (valor instanceof Double)
             cell.setCellValue((Double) valor);
         else
-            cell.setCellValue(valor.toString());
+            cell.setCellValue(valor != null ? valor.toString() : "");
         cell.setCellStyle(style);
+    }
+
+    private int crearTablaResumen(XSSFSheet sheet, LiquidacionJornadas liquidacion, CellStyle headerStyle, CellStyle normalStyle,
+            CellStyle moneyStyle, CellStyle boldStyle, CellStyle moneyBoldStyle, int startRow) {
+        int currentRow = startRow;
+
+        // Encabezados tabla resumen
+        Row headerRow = sheet.createRow(currentRow++);
+        crearCelda(headerRow, 0, "Concepto", headerStyle);
+        crearCelda(headerRow, 1, "Horas A Pagar", headerStyle);
+        crearCelda(headerRow, 2, "Valor Hora", headerStyle);
+        crearCelda(headerRow, 3, "Total $", headerStyle);
+
+        // Fila Normales
+        Row rowNormal = sheet.createRow(currentRow++);
+        crearCelda(rowNormal, 0, "Horas Normales", boldStyle);
+        crearCelda(rowNormal, 1, liquidacion.getHorasNormalesFormatted() != null ? liquidacion.getHorasNormalesFormatted() : "00:00", normalStyle);
+        crearCelda(rowNormal, 2, liquidacion.getValorHoraSnapshot() != null ? liquidacion.getValorHoraSnapshot().doubleValue() : 0.0, moneyStyle);
+        crearCelda(rowNormal, 3, liquidacion.getMontoTotalNormales() != null ? liquidacion.getMontoTotalNormales().doubleValue() : 0.0, moneyStyle);
+
+        // Fila Extras
+        Row rowExtra = sheet.createRow(currentRow++);
+        crearCelda(rowExtra, 0, "Horas Extras", boldStyle);
+        crearCelda(rowExtra, 1, liquidacion.getHorasExtrasFormatted() != null ? liquidacion.getHorasExtrasFormatted() : "00:00", normalStyle);
+        crearCelda(rowExtra, 2, liquidacion.getValorHoraExtraSnapshot() != null ? liquidacion.getValorHoraExtraSnapshot().doubleValue() : 0.0, moneyStyle);
+        crearCelda(rowExtra, 3, liquidacion.getMontoTotalExtras() != null ? liquidacion.getMontoTotalExtras().doubleValue() : 0.0, moneyStyle);
+
+        // Fila Especiales
+        Row rowEsp = sheet.createRow(currentRow++);
+        crearCelda(rowEsp, 0, "Horas Especiales", boldStyle);
+        crearCelda(rowEsp, 1, liquidacion.getHorasEspecialesFormatted() != null ? liquidacion.getHorasEspecialesFormatted() : "00:00", normalStyle);
+        crearCelda(rowEsp, 2, liquidacion.getValorHoraEspecialSnapshot() != null ? liquidacion.getValorHoraEspecialSnapshot().doubleValue() : 0.0, moneyStyle);
+        crearCelda(rowEsp, 3, liquidacion.getMontoTotalEspeciales() != null ? liquidacion.getMontoTotalEspeciales().doubleValue() : 0.0, moneyStyle);
+
+        // Fila Presentismo
+        com.sta.biometric.auxiliares.ResultadoPresentismoPeriodo resPresentismo = liquidacion.getResultadoPresentismo();
+        Row rowPres = sheet.createRow(currentRow++);
+        crearCelda(rowPres, 0, "Control Presentismo", boldStyle);
+        crearCelda(rowPres, 1, resPresentismo != null ? resPresentismo.getEstadoFormatted() : "-", normalStyle);
+        crearCelda(rowPres, 2, "Detalle", boldStyle);
+        crearCelda(rowPres, 3, resPresentismo != null ? resPresentismo.getMotivoDetalladoPerdida() : "-", normalStyle);
+
+        // Fila Total General
+        Row rowTotal = sheet.createRow(currentRow++);
+        crearCelda(rowTotal, 0, "TOTAL GENERAL", boldStyle);
+        crearCelda(rowTotal, 1, "", boldStyle); // Vacío
+        crearCelda(rowTotal, 2, "", boldStyle); // Vacío
+        crearCelda(rowTotal, 3, liquidacion.getMontoGranTotal() != null ? liquidacion.getMontoGranTotal().doubleValue() : 0.0, moneyBoldStyle);
+
+        return currentRow;
     }
 
     private void crearEncabezadoDetalle(XSSFSheet sheet, CellStyle headerStyle, int rowNum) {
         Row headerRow = sheet.createRow(rowNum);
         String[] columnas = {
-                "Empleado", "Fecha", "Turno Planificado", "Horario", "Estado Jornada",
-                "Horas Turno", "$ Hs.",
-                "Horas Extras", "$ Hs. Extras",
-                "Horas Especiales", "$ Hs. Especiales"
+                "Fecha", "Turno Planificado", "Horario", "Estado Jornada",
+                "A Liq. Norm.", "A Liq. Ext.", "A Liq. Esp.", "Banco Horas"
         };
 
         for (int i = 0; i < columnas.length; i++) {
@@ -368,74 +305,47 @@ public class ExportarJornadasExcelAction extends CollectionBaseAction implements
             CellStyle moneyStyle) {
         int colNum = 0;
 
-        // Columna A: Empleado
+        // Columna A: Fecha
         Cell cell = row.createCell(colNum++);
-        cell.setCellValue(jornada.getEmpleado() != null ? jornada.getEmpleado().getNombreCompleto() : "");
-        cell.setCellStyle(normalStyle);
-
-        // Columna B: Fecha
-        cell = row.createCell(colNum++);
         if (jornada.getFecha() != null) {
             cell.setCellValue(jornada.getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
         }
         cell.setCellStyle(dateStyle);
 
-        // Columna C: Turno Planificado
+        // Columna B: Turno Planificado
         cell = row.createCell(colNum++);
         cell.setCellValue(jornada.getTurnoPlanificado() != null ? jornada.getTurnoPlanificado() : "");
         cell.setCellStyle(normalStyle);
 
-        // Columna D: Horario
+        // Columna C: Horario
         cell = row.createCell(colNum++);
         cell.setCellValue(jornada.getHorario() != null ? jornada.getHorario() : "");
         cell.setCellStyle(normalStyle);
 
-        // Columna E: Estado Jornada (movida aquí)
+        // Columna D: Estado Jornada (Evaluación pura del dominio)
         cell = row.createCell(colNum++);
-        cell.setCellValue(jornada.getEstadoJornada() != null ? jornada.getEstadoJornada() : "");
+        cell.setCellValue(jornada.getEvaluacion() != null ? jornada.getEvaluacion().toString() : "");
         cell.setCellStyle(normalStyle);
 
-        // Columna F: Horas Turno
+        // Columna E: A Liq. Norm. (Horas Netas Normales a pagar)
         cell = row.createCell(colNum++);
-        cell.setCellValue(jornada.getHorasTrabajadasTurno() != null ? jornada.getHorasTrabajadasTurno() : "00:00");
+        cell.setCellValue(jornada.getHorasALiquidarNormales() != null ? jornada.getHorasALiquidarNormales() : "00:00");
         cell.setCellStyle(normalStyle);
 
-        // Columna G: $ Hs. (Monto Horas Normales)
+        // Columna F: A Liq. Ext. (Horas Netas Extras a pagar)
         cell = row.createCell(colNum++);
-        if (jornada.getTotalHorasTurno() != null) {
-            cell.setCellValue(jornada.getTotalHorasTurno().doubleValue());
-        } else {
-            cell.setCellValue(0.0);
-        }
-        cell.setCellStyle(moneyStyle);
-
-        // Columna H: Horas Extras
-        cell = row.createCell(colNum++);
-        cell.setCellValue(jornada.getHorasExtras() != null ? jornada.getHorasExtras() : "00:00");
+        cell.setCellValue(jornada.getHorasALiquidarExtras() != null ? jornada.getHorasALiquidarExtras() : "00:00");
         cell.setCellStyle(normalStyle);
 
-        // Columna I: $ Hs. Extras (Monto Horas Extras)
+        // Columna G: A Liq. Esp. (Horas Netas Especiales a pagar)
         cell = row.createCell(colNum++);
-        if (jornada.getTotalHorasExtras() != null) {
-            cell.setCellValue(jornada.getTotalHorasExtras().doubleValue());
-        } else {
-            cell.setCellValue(0.0);
-        }
-        cell.setCellStyle(moneyStyle);
-
-        // Columna J: Horas Especiales
-        cell = row.createCell(colNum++);
-        cell.setCellValue(jornada.getHorasEspeciales() != null ? jornada.getHorasEspeciales() : "00:00");
+        cell.setCellValue(jornada.getHorasALiquidarEspeciales() != null ? jornada.getHorasALiquidarEspeciales() : "00:00");
         cell.setCellStyle(normalStyle);
 
-        // Columna K: $ Hs. Especiales (Monto Horas Especiales)
+        // Columna H: Banco Horas
         cell = row.createCell(colNum++);
-        if (jornada.getTotalHorasEspeciales() != null) {
-            cell.setCellValue(jornada.getTotalHorasEspeciales().doubleValue());
-        } else {
-            cell.setCellValue(0.0);
-        }
-        cell.setCellStyle(moneyStyle);
+        cell.setCellValue(jornada.getBancoHorasDisplay() != null ? jornada.getBancoHorasDisplay() : "-");
+        cell.setCellStyle(normalStyle);
     }
 
     private CellStyle crearEstiloEncabezado(XSSFWorkbook workbook) {

@@ -96,14 +96,22 @@ public class EnviarABancoHorasAction extends TabBaseAction {
         int valorSugerido = (yaEnviados != 0) ? Math.abs(yaEnviados)
                 : Math.abs(disponible != 0 ? disponible : difTotal);
         boolean esPositivo = (yaEnviados != 0) ? (yaEnviados > 0) : (disponible >= 0);
-
+        boolean esConsumoBanco = !esPositivo;
         getView().setValue("signo", esPositivo ? Signo.MAS : Signo.MENOS);
+        getView().setHidden("descontarPresentismo", !esConsumoBanco);
 
         int h = valorSugerido / 60;
         int m = valorSugerido % 60;
         getView().setValue("minutosAEnviar", String.format("%02d:%02d", h, m));
 
         getView().setValue("saldoActual", banco.getSaldoBancoHorasDisplay());
+
+        if (esConsumoBanco) {
+            boolean defaultDescontar = (yaEnviados != 0) ? registro.isDescontarPresentismo()
+                    : com.sta.biometric.servicios.ConfiguracionesPreferencias.obtenerValor(
+                            com.sta.biometric.auxiliares.PresentismoProperties.BANCO_HORAS_DESCONTAR_DEFAULT, false, Boolean.class);
+            getView().setValue("descontarPresentismo", defaultDescontar);
+        }
         getView().setValue("observacion", "");
 
         // Asignar controlador de botones del diálogo

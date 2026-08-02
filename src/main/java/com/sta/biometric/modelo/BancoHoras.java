@@ -88,7 +88,7 @@ public class BancoHoras extends Identifiable {
     @OneToMany(mappedBy = "bancoHoras", cascade = CascadeType.ALL)
     @OrderBy("fechaCreacion DESC")
     @ReadOnly
-    @ListProperties("fechaCreacion, fechaJornada, tipo, minutosFormateados, saldoAnteriorFormateado, saldoNuevoFormateado, usuarioOperacion, observacion")
+    @ListProperties("fechaCreacion, fechaJornada, tipo, minutosFormateados, saldoAnteriorFormateado, saldoNuevoFormateado, presentismoDisplay, usuarioOperacion, observacion")
     private Collection<MovimientoBancoHoras> movimientos = new ArrayList<>();
 
     // =========================================================================

@@ -94,8 +94,16 @@ graph TD
    - **`minutosEnviadosAlBanco > 0` (Envío de Horas al Banco):** Representa un crédito generado por el empleado. Corresponde descontarlo únicamente del importe a liquidar en el recibo de sueldo ($\text{Liquidación} = \text{Horas Liquidadas} - \text{Banco}$).
    - **`minutosEnviadosAlBanco < 0` (Consumo de Saldo del Banco):** Representa un consumo de saldo previamente acumulado para compensar un déficit o ausencia. **Jamás debe incrementar las horas ni el importe del recibo de sueldo**, evitando la doble compensación en dinero.
 
-2. **Invariante de Preservación de Capas:**
-   - **Horas Registradas (`getHorasBaseXxx`):** Inalterables (histórico del fichaje biométrico).
-   - **Horas Liquidadas (`getHorasTrabajadasTurno`, `getHorasExtras`, `getHorasEspeciales`):** Inalterables (clasificación real de la jornada $\text{Base} + \text{Ajuste Manual} + \text{Redondeo}$).
-   - **AuditoriaRegistros:** Describe la jornada sin acoplarse a políticas de pago.
-   - **LiquidacionJornadaService:** Concentra la lógica de determinación de las horas pagadas.
+2. **Invariante de Preservación de Capas y Flujo Conceptual:**
+   ```text
+   Horas Registradas ──► Horas Liquidadas ──► Movimiento Banco Horas ──► Horas Netas a Pagar
+   ```
+   - **`AuditoriaRegistros` (Dominio):** Describe la jornada. Calcula y expone exclusivamente Horas Registradas, Horas Liquidadas (`getHorasTrabajadasTurno`, `getHorasExtras`, `getHorasEspeciales`), Ajustes (Manuales y Redondeo) y Movimiento del Banco. **No contiene reglas de liquidación ni calcula netos pagados.**
+   - **`LiquidacionJornadaService` (Servicio):** Única autoridad para aplicar la política del Banco de Horas y calcular las Horas Netas a Pagar. Genera el DTO `HorasNetasJornada` como el resultado oficial de liquidación.
+   - **UI (`VerJornadasLiquidacionAction` / `LiquidacionJornadas`):** No recalcula nada. Consume `HorasNetasJornada` poblado por la capa de aplicación y muestra la secuencia: Horas Liquidadas $\rightarrow$ Movimiento Banco $\rightarrow$ Horas Netas a Pagar.
+   - **`ExportarJornadasExcelAction` (Presentación):** No recalcula nada. Consume exactamente los mismos datos de `HorasNetasJornada` utilizados por la UI.
+
+3. **Invariante del Módulo de Presentismo:**
+   Todo cálculo relacionado con el estado de una jornada pertenece exclusivamente a `AuditoriaRegistros`. El módulo de Presentismo únicamente interpreta esa información y aplica políticas configurables. No se permite duplicar algoritmos existentes ni implementar evaluaciones paralelas.
+
+

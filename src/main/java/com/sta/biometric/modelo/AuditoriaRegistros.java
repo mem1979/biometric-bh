@@ -57,7 +57,7 @@ import lombok.*;
         "nota;" +
         "}")
 
-@Tab(editors = "List", properties = "empleado.nombreCompleto, diaSemana, fecha, horario, evaluacion, estadoJornada, enBanco, empleado.sucursal.nombre, nota", defaultOrder = "${fecha} desc, ${empleado.sucursal.nombre} asc, ${empleado.nombreCompleto} asc", rowStyles = {
+@Tab(editors = "List", properties = "empleado.nombreCompleto, diaSemana, fecha, horario, evaluacion, estadoJornada, enBanco, presentismoBancoDisplay, empleado.sucursal.nombre, nota", defaultOrder = "${fecha} desc, ${empleado.sucursal.nombre} asc, ${empleado.nombreCompleto} asc", rowStyles = {
         @RowStyle(style = "estilo-violeta-claro", property = "enBanco", value = "true"),
         @RowStyle(style = "estilo-gris-claro", property = "evaluacion", value = "PENDIENTE"),
         @RowStyle(style = "estilo-gris-intenso", property = "evaluacion", value = "EN_CURSO"),
@@ -274,6 +274,14 @@ public class AuditoriaRegistros extends Identifiable {
     @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
     @Hidden
     private boolean enBanco = false;
+
+    /**
+     * Indica si la jornada con movimiento en el Banco de Horas computa como penalización de presentismo (true)
+     * o si queda exenta (false).
+     */
+    @Column(name = "descontar_presentismo", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Hidden
+    private boolean descontarPresentismo = false;
 
     @Stereotype("MEMO")
     @Column(length = 2000)
@@ -1764,7 +1772,63 @@ public class AuditoriaRegistros extends Identifiable {
      * 
      * @return String con emoji e información del estado
      */
+
+    /**
+     * Muestra los minutos enviados al Banco de Horas en formato visual.
+     * Reutiliza TiempoUtils.formatearMinutosConSigno(minutosEnviadosAlBanco).
+     * Getter exclusivo de presentación para auditoría y diálogos de visualización.
+     * 
+     * @return String formateado "+HH:MM", "-HH:MM" o "-"
+     */
     @Transient
+    @ReadOnly
+    public String getBancoHorasDisplay() {
+        return TiempoUtils.formatearMinutosConSigno(minutosEnviadosAlBanco);
+    }
+
+    // ==================================================================================
+    // CAMPOS Y GETTERS TRANSITORIOS PARA PRESENTACIÓN DE HORAS A LIQUIDAR (NETO)
+    // ==================================================================================
+    @Transient
+    private String horasALiquidarNormales;
+
+    @Transient
+    private String horasALiquidarExtras;
+
+    @Transient
+    private String horasALiquidarEspeciales;
+
+    /**
+     * Carga el DTO inmutable de presentación entregado por la capa de servicio
+     * sin acoplar esta entidad a clases de servicio.
+     * 
+     * @param netas DTO HorasNetasJornada con las horas netas oficiales
+     */
+    public void cargarHorasNetasPresentacion(com.sta.biometric.auxiliares.HorasNetasJornada netas) {
+        if (netas != null) {
+            this.horasALiquidarNormales = netas.getNormalesFormatted();
+            this.horasALiquidarExtras = netas.getExtrasFormatted();
+            this.horasALiquidarEspeciales = netas.getEspecialesFormatted();
+        }
+    }
+
+    @Transient
+    @ReadOnly
+    public String getHorasALiquidarNormales() {
+        return horasALiquidarNormales != null ? horasALiquidarNormales : getHorasTrabajadasTurno();
+    }
+
+    @Transient
+    @ReadOnly
+    public String getHorasALiquidarExtras() {
+        return horasALiquidarExtras != null ? horasALiquidarExtras : getHorasExtras();
+    }
+
+    @Transient
+    @ReadOnly
+    public String getHorasALiquidarEspeciales() {
+        return horasALiquidarEspeciales != null ? horasALiquidarEspeciales : getHorasEspeciales();
+    }
 
     public void setMinutosEnviadosAlBanco(int minutosEnviadosAlBanco) {
         this.minutosEnviadosAlBanco = minutosEnviadosAlBanco;
@@ -1773,6 +1837,25 @@ public class AuditoriaRegistros extends Identifiable {
 
     public boolean isEnBanco() {
         return this.enBanco || (this.minutosEnviadosAlBanco != 0);
+    }
+
+    public boolean isDescontarPresentismo() {
+        return this.descontarPresentismo;
+    }
+
+    public void setDescontarPresentismo(boolean descontarPresentismo) {
+        this.descontarPresentismo = descontarPresentismo;
+    }
+
+    /**
+     * Propiedad de presentación para mostrar si la jornada enviada al Banco computa o no para el presentismo.
+     * Retorna COMPUTA, NO COMPUTA o - si no posee movimientos de Banco.
+     */
+    @Transient
+    @ReadOnly
+    public String getPresentismoBancoDisplay() {
+        if (minutosEnviadosAlBanco == 0) return "-";
+        return descontarPresentismo ? "COMPUTA" : "NO COMPUTA";
     }
 
     @MiLabel(medida = "mediana", negrita = true, recuadro = false, mayuscula = false)
