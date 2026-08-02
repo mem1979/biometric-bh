@@ -23,6 +23,7 @@ public class ExportarPersonalCsvAction extends TabBaseAction implements IJavaScr
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void execute() throws Exception {
         try {
             Map<String, Object>[] clavesSeleccionadas = getSelectedKeys();

@@ -118,6 +118,7 @@ public class EnviarABancoHorasAction extends TabBaseAction {
         setControllers("DialogoBancoHoras");
     }
 
+    @SuppressWarnings("unchecked")
     private AuditoriaRegistros obtenerRegistroActual() {
         // 1. Intentar desde getSelectedKeys() (funciona en Lista para RowAction y
         // ListAction)
