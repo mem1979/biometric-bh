@@ -57,7 +57,7 @@ import lombok.*;
         "nota;" +
         "}")
 
-@Tab(editors = "List", properties = "empleado.nombreCompleto, diaSemana, fecha, horario, evaluacion, estadoJornada, enBanco, presentismoBancoDisplay, empleado.sucursal.nombre, nota", defaultOrder = "${fecha} desc, ${empleado.sucursal.nombre} asc, ${empleado.nombreCompleto} asc", rowStyles = {
+@Tab(editors = "List", properties = "empleado.nombreCompleto, diaSemana, fecha, horario, evaluacion, empleado.sucursal.nombre, nota, enBanco", defaultOrder = "${fecha} desc, ${empleado.sucursal.nombre} asc, ${empleado.nombreCompleto} asc", rowStyles = {
         @RowStyle(style = "estilo-violeta-claro", property = "enBanco", value = "true"),
         @RowStyle(style = "estilo-gris-claro", property = "evaluacion", value = "PENDIENTE"),
         @RowStyle(style = "estilo-gris-intenso", property = "evaluacion", value = "EN_CURSO"),
@@ -276,7 +276,8 @@ public class AuditoriaRegistros extends Identifiable {
     private boolean enBanco = false;
 
     /**
-     * Indica si la jornada con movimiento en el Banco de Horas computa como penalización de presentismo (true)
+     * Indica si la jornada con movimiento en el Banco de Horas computa como
+     * penalización de presentismo (true)
      * o si queda exenta (false).
      */
     @Column(name = "descontar_presentismo", columnDefinition = "BOOLEAN DEFAULT FALSE")
@@ -1183,6 +1184,7 @@ public class AuditoriaRegistros extends Identifiable {
      * <p>
      * Implementa la fórmula invariante del dominio:
      * </p>
+     * 
      * <pre>
      *   Horas Liquidadas = Base + Ajuste Manual + Ajuste Redondeo
      * </pre>
@@ -1277,7 +1279,8 @@ public class AuditoriaRegistros extends Identifiable {
     }
 
     /**
-     * Verifica si la suma de los ajustes manuales es exactamente cero (invariante de conservación).
+     * Verifica si la suma de los ajustes manuales es exactamente cero (invariante
+     * de conservación).
      * 
      * @return {@code true} si la suma de ajustes manuales es 0
      */
@@ -1848,13 +1851,15 @@ public class AuditoriaRegistros extends Identifiable {
     }
 
     /**
-     * Propiedad de presentación para mostrar si la jornada enviada al Banco computa o no para el presentismo.
+     * Propiedad de presentación para mostrar si la jornada enviada al Banco computa
+     * o no para el presentismo.
      * Retorna COMPUTA, NO COMPUTA o - si no posee movimientos de Banco.
      */
     @Transient
     @ReadOnly
     public String getPresentismoBancoDisplay() {
-        if (minutosEnviadosAlBanco == 0) return "-";
+        if (minutosEnviadosAlBanco == 0)
+            return "-";
         return descontarPresentismo ? "COMPUTA" : "NO COMPUTA";
     }
 

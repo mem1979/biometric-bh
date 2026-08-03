@@ -13,13 +13,12 @@ import com.sta.biometric.modelo.*;
 import com.sta.biometric.servicios.GestionJornadasService;
 
 /**
- * Tarea programada para generar la apertura de jornada diaria para todos los
- * empleados activos.
+ * Tarea programada para generar la apertura de jornada diaria para todos los empleados activos.
  * Ejecutada automáticamente a las 00:01 hs.
  * 
  * <p>
- * <strong>Nota JPA:</strong> Usa {@code XPersistence.createManager()} para
- * reutilizar el EntityManagerFactory singleton de OpenXava.
+ * <strong>Resiliencia:</strong> Cada empleado se procesa en su propia transacción para asegurar
+ * que un fallo aislado no interrumpa el procesamiento del resto del personal ni bloquee el hilo.
  * </p>
  */
 @DisallowConcurrentExecution
@@ -31,15 +30,21 @@ public class AperturaJornadaJob implements Job {
         System.out.println("[AperturaJornadaJob] ===== INICIO " + LocalDateTime.now() + " =====");
         System.out.println("[AperturaJornadaJob] Procesando fecha: " + hoy);
 
-        // Usar XPersistence.createManager() para reutilizar el EMFactory singleton
         EntityManager em = XPersistence.createManager();
 
         try {
-            em.getTransaction().begin();
-
-            List<Personal> empleados = em.createQuery(
-                    "SELECT e FROM Personal e WHERE e.activo = true AND e.eliminado = false", Personal.class)
-                    .getResultList();
+            List<Personal> empleados;
+            try {
+                em.getTransaction().begin();
+                empleados = em.createQuery(
+                        "SELECT e FROM Personal e WHERE e.activo = true AND e.eliminado = false", Personal.class)
+                        .getResultList();
+                em.getTransaction().commit();
+            } catch (Exception e) {
+                if (em.getTransaction().isActive()) em.getTransaction().rollback();
+                System.err.println("[AperturaJornadaJob] Error al consultar nomina activa: " + e.getMessage());
+                return;
+            }
 
             System.out.println("[AperturaJornadaJob] Empleados activos encontrados: " + empleados.size());
 
@@ -48,6 +53,8 @@ public class AperturaJornadaJob implements Job {
 
             for (Personal empleado : empleados) {
                 try {
+                    em.getTransaction().begin();
+
                     // === VERIFICAR JORNADA NOCTURNA EN CURSO ===
                     LocalDate ayer = hoy.minusDays(1);
                     AuditoriaRegistros jornadaNocturnaAbierta = buscarJornadaNocturnaEnCurso(empleado, ayer, em);
@@ -56,40 +63,41 @@ public class AperturaJornadaJob implements Job {
                         System.out.println("  [⏳] Omitida: " + empleado.getNombreCompleto() +
                                 " - jornada nocturna en curso desde ayer");
                         omitidos++;
+                        em.getTransaction().commit();
                         continue;
                     }
                     // === FIN VERIFICACIÓN ===
 
                     // DELEGACIÓN AL SERVICIO - Pasando EntityManager
                     GestionJornadasService.getInstance().abrirOActualizarJornada(empleado, hoy, em);
+                    em.getTransaction().commit();
                     contador++;
 
                 } catch (Exception e) {
-                    System.err.println("[!] Error procesando " + empleado.getNombreCompleto() + ": " + e.getMessage());
+                    if (em.getTransaction().isActive()) {
+                        em.getTransaction().rollback();
+                    }
+                    System.err.println("[!] Error procesando " + (empleado != null ? empleado.getNombreCompleto() : "desconocido") + ": " + e.getMessage());
                     e.printStackTrace();
                 }
             }
 
-            em.getTransaction().commit();
             System.out.println("[AperturaJornadaJob] Resultado: " + contador + " abiertos, " + omitidos
                     + " omitidos por nocturna.");
             System.out.println("[AperturaJornadaJob] ===== FIN " + LocalDateTime.now() + " =====");
 
         } catch (Exception e) {
-            if (em.getTransaction().isActive()) {
-                em.getTransaction().rollback();
-            }
             System.err.println("[AperturaJornadaJob] ERROR GENERAL: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            em.close();
-            // NO cerrar XPersistence factory - es singleton compartido
+            if (em != null && em.isOpen()) {
+                em.close();
+            }
         }
     }
 
     /**
-     * Busca si el empleado tiene una jornada nocturna EN_CURSO para la fecha
-     * indicada.
+     * Busca si el empleado tiene una jornada nocturna EN_CURSO para la fecha indicada.
      */
     private AuditoriaRegistros buscarJornadaNocturnaEnCurso(Personal empleado, LocalDate fecha, EntityManager em) {
         try {

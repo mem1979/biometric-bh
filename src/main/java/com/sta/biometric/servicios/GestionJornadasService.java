@@ -310,7 +310,14 @@ public class GestionJornadasService {
         }
 
         if (asistencia.getNota() == null || asistencia.getNota().isBlank()) {
-            asistencia.setNota("Jornada inicializada/verificada.");
+            if (asistencia.getEvaluacion() == EvaluacionJornada.FERIADO) {
+                asistencia.setNota("Feriado nacional asignado automáticamente.");
+            } else if (asistencia.getEvaluacion() == EvaluacionJornada.DIA_NO_LABORAL) {
+                asistencia.setNota("Día no laboral programado según esquema de turno.");
+            } else if (asistencia.getEvaluacion() == EvaluacionJornada.LICENCIA) {
+                asistencia.setNota("Licencia registrada para el empleado.");
+            }
+            // Para jornadas PENDIENTES o normales, la nota se mantiene vacía sin texto basura
         }
     }
 

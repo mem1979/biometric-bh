@@ -14,18 +14,10 @@ import com.sta.biometric.servicios.GestionJornadasService;
 
 /**
  * Job para cerrar jornadas nocturnas del día anterior.
- * 
- * Se ejecuta a las 08:00 AM (después de que terminan los turnos nocturnos
- * típicos).
- * Busca jornadas del día anterior que tengan:
- * - esJornadaNocturna = true
- * - evaluacion = EN_CURSO o PENDIENTE
- * 
- * Y las consolida para calcular las horas trabajadas correctamente.
+ * Se ejecuta a las 12:00 PM (después de que terminan los turnos nocturnos típicos).
  * 
  * <p>
- * <strong>Nota JPA:</strong> Usa {@code XPersistence.createManager()} para
- * reutilizar el EntityManagerFactory singleton de OpenXava.
+ * <strong>Resiliencia:</strong> Cada jornada nocturna se procesa en su propia transacción.
  * </p>
  */
 @DisallowConcurrentExecution
@@ -37,29 +29,33 @@ public class CierreJornadaNocturnaJob implements Job {
         System.out.println("[CierreJornadaNocturnaJob] ===== INICIO " + LocalDateTime.now() + " =====");
         System.out.println("[CierreJornadaNocturnaJob] Buscando jornadas nocturnas de: " + ayer);
 
-        // Usar XPersistence.createManager() para reutilizar el EMFactory singleton
         EntityManager em = XPersistence.createManager();
 
         try {
-            em.getTransaction().begin();
-
-            // Buscar jornadas nocturnas de ayer que estén EN_CURSO o PENDIENTE
-            List<AuditoriaRegistros> nocturnas = em.createQuery(
-                    "SELECT a FROM AuditoriaRegistros a " +
-                            "WHERE a.fecha = :fecha " +
-                            "AND a.esJornadaNocturna = true " +
-                            "AND a.evaluacion IN :estados",
-                    AuditoriaRegistros.class)
-                    .setParameter("fecha", ayer)
-                    .setParameter("estados", java.util.Arrays.asList(
-                            EvaluacionJornada.EN_CURSO,
-                            EvaluacionJornada.PENDIENTE))
-                    .getResultList();
+            List<AuditoriaRegistros> nocturnas;
+            try {
+                em.getTransaction().begin();
+                nocturnas = em.createQuery(
+                        "SELECT a FROM AuditoriaRegistros a " +
+                                "WHERE a.fecha = :fecha " +
+                                "AND a.esJornadaNocturna = true " +
+                                "AND a.evaluacion IN :estados",
+                        AuditoriaRegistros.class)
+                        .setParameter("fecha", ayer)
+                        .setParameter("estados", java.util.Arrays.asList(
+                                EvaluacionJornada.EN_CURSO,
+                                EvaluacionJornada.PENDIENTE))
+                        .getResultList();
+                em.getTransaction().commit();
+            } catch (Exception e) {
+                if (em.getTransaction().isActive()) em.getTransaction().rollback();
+                System.err.println("[CierreJornadaNocturnaJob] Error al buscar jornadas nocturnas: " + e.getMessage());
+                return;
+            }
 
             System.out.println("[CierreJornadaNocturnaJob] Jornadas nocturnas pendientes: " + nocturnas.size());
 
             if (nocturnas.isEmpty()) {
-                em.getTransaction().commit();
                 System.out.println("[CierreJornadaNocturnaJob] ===== FIN (nada que procesar) =====");
                 return;
             }
@@ -71,6 +67,8 @@ public class CierreJornadaNocturnaJob implements Job {
 
             for (AuditoriaRegistros asistencia : nocturnas) {
                 try {
+                    em.getTransaction().begin();
+
                     // === VERIFICAR HORA DE SALIDA ESPERADA ===
                     LocalTime horaSalidaEsperada = asistencia.getHoraEsperadaSalida();
                     if (horaSalidaEsperada != null && ahora.isBefore(horaSalidaEsperada)) {
@@ -78,12 +76,14 @@ public class CierreJornadaNocturnaJob implements Job {
                                 (asistencia.getEmpleado() != null ? asistencia.getEmpleado().getNombreCompleto()
                                         : "Empleado desconocido"));
                         pospuestas++;
+                        em.getTransaction().commit();
                         continue;
                     }
                     // === FIN VERIFICACIÓN ===
 
                     // DELEGACIÓN AL SERVICIO - Pasando EntityManager
                     GestionJornadasService.getInstance().cerrarJornada(asistencia, em);
+                    em.getTransaction().commit();
                     cerradas++;
                     System.out.println("  [✓] Cerrada: " +
                             (asistencia.getEmpleado() != null ? asistencia.getEmpleado().getNombreCompleto()
@@ -91,6 +91,9 @@ public class CierreJornadaNocturnaJob implements Job {
 
                 } catch (Exception e) {
                     errores++;
+                    if (em.getTransaction().isActive()) {
+                        em.getTransaction().rollback();
+                    }
                     System.err.println("  [!] Error cerrando " +
                             (asistencia.getEmpleado() != null ? asistencia.getEmpleado().getNombreCompleto()
                                     : "Empleado desconocido")
@@ -99,20 +102,17 @@ public class CierreJornadaNocturnaJob implements Job {
                 }
             }
 
-            em.getTransaction().commit();
             System.out.println("[CierreJornadaNocturnaJob] Resultado: " + cerradas + " cerradas, " +
                     pospuestas + " pospuestas, " + errores + " errores.");
             System.out.println("[CierreJornadaNocturnaJob] ===== FIN " + LocalDateTime.now() + " =====");
 
         } catch (Exception e) {
-            if (em.getTransaction().isActive()) {
-                em.getTransaction().rollback();
-            }
             System.err.println("[CierreJornadaNocturnaJob] ERROR GENERAL: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            em.close();
-            // NO cerrar XPersistence factory - es singleton compartido
+            if (em != null && em.isOpen()) {
+                em.close();
+            }
         }
     }
 }
