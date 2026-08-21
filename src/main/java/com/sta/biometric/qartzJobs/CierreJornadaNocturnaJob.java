@@ -5,6 +5,7 @@ import java.util.*;
 
 import javax.persistence.*;
 
+import org.apache.commons.logging.*;
 import org.openxava.jpa.*;
 import org.quartz.*;
 
@@ -14,49 +15,38 @@ import com.sta.biometric.servicios.GestionJornadasService;
 
 /**
  * Job para cerrar jornadas nocturnas del día anterior.
- * Se ejecuta a las 12:00 PM (después de que terminan los turnos nocturnos típicos).
- * 
- * <p>
- * <strong>Resiliencia:</strong> Cada jornada nocturna se procesa en su propia transacción.
- * </p>
+ * Se ejecuta a las 12:00 PM según el patrón oficial de OpenXava.
  */
 @DisallowConcurrentExecution
 public class CierreJornadaNocturnaJob implements Job {
 
+    private static final Log log = LogFactory.getLog(CierreJornadaNocturnaJob.class);
+
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        LocalDate ayer = LocalDate.now().minusDays(1);
-        System.out.println("[CierreJornadaNocturnaJob] ===== INICIO " + LocalDateTime.now() + " =====");
-        System.out.println("[CierreJornadaNocturnaJob] Buscando jornadas nocturnas de: " + ayer);
-
-        EntityManager em = XPersistence.createManager();
-
         try {
-            List<AuditoriaRegistros> nocturnas;
-            try {
-                em.getTransaction().begin();
-                nocturnas = em.createQuery(
-                        "SELECT a FROM AuditoriaRegistros a " +
-                                "WHERE a.fecha = :fecha " +
-                                "AND a.esJornadaNocturna = true " +
-                                "AND a.evaluacion IN :estados",
-                        AuditoriaRegistros.class)
-                        .setParameter("fecha", ayer)
-                        .setParameter("estados", java.util.Arrays.asList(
-                                EvaluacionJornada.EN_CURSO,
-                                EvaluacionJornada.PENDIENTE))
-                        .getResultList();
-                em.getTransaction().commit();
-            } catch (Exception e) {
-                if (em.getTransaction().isActive()) em.getTransaction().rollback();
-                System.err.println("[CierreJornadaNocturnaJob] Error al buscar jornadas nocturnas: " + e.getMessage());
-                return;
-            }
+            LocalDate ayer = LocalDate.now().minusDays(1);
+            log.info("[CierreJornadaNocturnaJob] ===== INICIO " + LocalDateTime.now() + " =====");
 
-            System.out.println("[CierreJornadaNocturnaJob] Jornadas nocturnas pendientes: " + nocturnas.size());
+            EntityManager em = XPersistence.getManager();
+
+            List<AuditoriaRegistros> nocturnas = em.createQuery(
+                    "SELECT a FROM AuditoriaRegistros a " +
+                            "WHERE a.fecha = :fecha " +
+                            "AND a.esJornadaNocturna = true " +
+                            "AND a.evaluacion IN :estados",
+                    AuditoriaRegistros.class)
+                    .setParameter("fecha", ayer)
+                    .setParameter("estados", java.util.Arrays.asList(
+                            EvaluacionJornada.EN_CURSO,
+                            EvaluacionJornada.PENDIENTE))
+                    .getResultList();
+
+            log.info("[CierreJornadaNocturnaJob] Jornadas nocturnas pendientes: " + nocturnas.size());
 
             if (nocturnas.isEmpty()) {
-                System.out.println("[CierreJornadaNocturnaJob] ===== FIN (nada que procesar) =====");
+                XPersistence.commit();
+                log.info("[CierreJornadaNocturnaJob] ===== FIN (nada que procesar) =====");
                 return;
             }
 
@@ -67,52 +57,32 @@ public class CierreJornadaNocturnaJob implements Job {
 
             for (AuditoriaRegistros asistencia : nocturnas) {
                 try {
-                    em.getTransaction().begin();
-
-                    // === VERIFICAR HORA DE SALIDA ESPERADA ===
                     LocalTime horaSalidaEsperada = asistencia.getHoraEsperadaSalida();
                     if (horaSalidaEsperada != null && ahora.isBefore(horaSalidaEsperada)) {
-                        System.out.println("  [⏳] Pospuesta (termina " + horaSalidaEsperada + "): " +
-                                (asistencia.getEmpleado() != null ? asistencia.getEmpleado().getNombreCompleto()
-                                        : "Empleado desconocido"));
                         pospuestas++;
-                        em.getTransaction().commit();
                         continue;
                     }
-                    // === FIN VERIFICACIÓN ===
 
-                    // DELEGACIÓN AL SERVICIO - Pasando EntityManager
                     GestionJornadasService.getInstance().cerrarJornada(asistencia, em);
-                    em.getTransaction().commit();
                     cerradas++;
-                    System.out.println("  [✓] Cerrada: " +
-                            (asistencia.getEmpleado() != null ? asistencia.getEmpleado().getNombreCompleto()
-                                    : "Empleado desconocido"));
 
                 } catch (Exception e) {
                     errores++;
-                    if (em.getTransaction().isActive()) {
-                        em.getTransaction().rollback();
-                    }
-                    System.err.println("  [!] Error cerrando " +
+                    log.error("[CierreJornadaNocturnaJob] Error cerrando nocturna de " +
                             (asistencia.getEmpleado() != null ? asistencia.getEmpleado().getNombreCompleto()
-                                    : "Empleado desconocido")
-                            + ": " + e.getMessage());
-                    e.printStackTrace();
+                                    : "empleado"), e);
                 }
             }
 
-            System.out.println("[CierreJornadaNocturnaJob] Resultado: " + cerradas + " cerradas, " +
-                    pospuestas + " pospuestas, " + errores + " errores.");
-            System.out.println("[CierreJornadaNocturnaJob] ===== FIN " + LocalDateTime.now() + " =====");
+            XPersistence.commit();
+            log.info("[CierreJornadaNocturnaJob] Resultado: " + cerradas + " cerradas, " + pospuestas + " pospuestas, " + errores + " errores.");
+            log.info("[CierreJornadaNocturnaJob] ===== FIN " + LocalDateTime.now() + " =====");
 
         } catch (Exception e) {
-            System.err.println("[CierreJornadaNocturnaJob] ERROR GENERAL: " + e.getMessage());
-            e.printStackTrace();
+            XPersistence.rollback();
+            log.error("[CierreJornadaNocturnaJob] ERROR GENERAL en la ejecución", e);
         } finally {
-            if (em != null && em.isOpen()) {
-                em.close();
-            }
+            XPersistence.commit(); // Cierre y liberación estricta del ThreadLocal según estándar OpenXava
         }
     }
 }

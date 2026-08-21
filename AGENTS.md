@@ -106,4 +106,9 @@ graph TD
 3. **Invariante del Módulo de Presentismo:**
    Todo cálculo relacionado con el estado de una jornada pertenece exclusivamente a `AuditoriaRegistros`. El módulo de Presentismo únicamente interpreta esa información y aplica políticas configurables. No se permite duplicar algoritmos existentes ni implementar evaluaciones paralelas.
 
+4. **Directiva Permanente de Desarrollo – Documentación Técnica Obligatoria:**
+   - Toda modificación funcional o nuevo servicio en el proyecto deberá contar con su correspondiente documentación técnica dentro de la carpeta `Software Design Document/` respetando la numeración secuencial (`00_...`, `01_...`, etc.).
+   - Ninguna funcionalidad se considera **finalizada** hasta que su documentación técnica haya sido creada o actualizada describiendo el estado final del sistema.
+   - Cuando una implementación modifique una regla arquitectónica permanente, además se actualizará este archivo (`AGENTS.md`).
+
 

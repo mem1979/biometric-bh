@@ -45,6 +45,7 @@ com\sta\biometric\acciones\LicenciasGenerateReportAction.class
 com\sta\biometric\acciones\RevertirMovimientoBancoAction.class
 com\sta\biometric\dashboard\auxiliares\ResumenEmpleadoHoy$1.class
 com\sta\biometric\auxiliares\Sucursales.class
+com\sta\biometric\auxiliares\DiagnosticoInterpretacionSecuencia.class
 com\sta\biometric\enums\TipoRedondeo.class
 com\sta\biometric\acciones\CargarArchivoAction.class
 com\sta\biometric\modelo\BancoHoras.class
@@ -137,6 +138,7 @@ com\sta\biometric\seed\DataSeedPartidos.class
 com\sta\biometric\anotaciones\Mayuscula.class
 com\sta\biometric\auxiliares\ImportadorFichadas.class
 com\sta\biometric\rest\AsistenciaEndpoint.class
+com\sta\biometric\auxiliares\DiagnosticoInterpretacionSecuencia$DiagnosticoInterpretacionSecuenciaBuilder.class
 com\sta\biometric\acciones\ConfirmarLiquidacionAction.class
 com\sta\biometric\servicios\AsignarCoordenadasService$GeoData.class
 com\sta\biometric\enums\TipoMovimiento.class
@@ -214,6 +216,7 @@ com\sta\biometric\dashboard\auxiliares\DtoLicenciasFeriados.class
 com\sta\biometric\acciones\ImprimirLicenciasPorEmpleadoAction.class
 com\sta\biometric\acciones\LicenciasVerCalendarioAction.class
 com\sta\biometric\servicios\LectorArchivoService$1.class
+com\sta\biometric\servicios\ObservadorSecuenciaFichadasService.class
 com\sta\biometric\auxiliares\Provincias.class
 com\sta\biometric\seed\DataSeedProvincias.class
 com\sta\biometric\rest\HikvisionThreadPool.class

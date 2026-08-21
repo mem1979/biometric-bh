@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.sta.biometric.servicios.ObservadorSecuenciaFichadasServiceTest
+-------------------------------------------------------------------------------
+Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.061 s -- in com.sta.biometric.servicios.ObservadorSecuenciaFichadasServiceTest

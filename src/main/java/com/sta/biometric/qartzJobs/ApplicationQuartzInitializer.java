@@ -3,11 +3,13 @@ package com.sta.biometric.qartzJobs;
 import javax.servlet.*;
 import javax.servlet.annotation.*;
 
+import org.apache.commons.logging.*;
 import org.quartz.*;
 import org.quartz.impl.*;
 
 /**
- * Inicializador del Quartz Scheduler que se ejecuta automáticamente al arrancar el contenedor de servlets.
+ * Inicializador de Quartz que se ejecuta automáticamente al arrancar Tomcat o
+ * el contenedor de Servlets, siguiendo la documentación oficial de OpenXava.
  * 
  * <p>
  * Jobs programados:
@@ -21,95 +23,99 @@ import org.quartz.impl.*;
 @WebListener
 public class ApplicationQuartzInitializer implements ServletContextListener {
 
-    private static Scheduler scheduler;
+    private static final Log log = LogFactory.getLog(ApplicationQuartzInitializer.class);
 
     @Override
-    public synchronized void contextInitialized(ServletContextEvent sce) {
+    public void contextInitialized(ServletContextEvent sce) {
         try {
-            if (scheduler != null && !scheduler.isShutdown() && scheduler.isStarted()) {
-                System.out.println("[Quartz] Scheduler ya se encuentra activo en este proceso.");
-                return;
+            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+
+            // 1. JOB APERTURA (00:01 AM)
+            JobKey aperturaKey = new JobKey("aperturaJob", "asistencia");
+            if (!scheduler.checkExists(aperturaKey)) {
+                JobDetail aperturaJob = JobBuilder.newJob(AperturaJornadaJob.class)
+                        .withIdentity(aperturaKey)
+                        .build();
+
+                Trigger aperturaTrigger = TriggerBuilder.newTrigger()
+                        .withIdentity("aperturaTrigger", "asistencia")
+                        .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(0, 1))
+                        .build();
+
+                scheduler.scheduleJob(aperturaJob, aperturaTrigger);
+                log.info("[Quartz] Job APERTURA programado a las 00:01 AM.");
             }
 
-            scheduler = StdSchedulerFactory.getDefaultScheduler();
+            // 2. JOB CIERRE DIARIO (23:59 PM)
+            JobKey cierreKey = new JobKey("cierreJob", "asistencia");
+            if (!scheduler.checkExists(cierreKey)) {
+                JobDetail cierreJob = JobBuilder.newJob(CierreJornadaJob.class)
+                        .withIdentity(cierreKey)
+                        .build();
 
-            // Si el scheduler ya tenía jobs cargados de una sesión previa, limpiar antes de reprogramar
-            if (scheduler.isStarted()) {
-                scheduler.clear();
+                Trigger cierreTrigger = TriggerBuilder.newTrigger()
+                        .withIdentity("cierreTrigger", "asistencia")
+                        .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(23, 59))
+                        .build();
+
+                scheduler.scheduleJob(cierreJob, cierreTrigger);
+                log.info("[Quartz] Job CIERRE programado a las 23:59 PM.");
             }
 
-            // =================================================================
-            // JOB 1: Apertura diaria - 00:01 AM
-            // =================================================================
-            JobDetail aperturaJob = JobBuilder.newJob(AperturaJornadaJob.class)
-                    .withIdentity("aperturaJob", "asistencia")
-                    .build();
+            // 3. JOB CIERRE NOCTURNO (12:00 PM)
+            JobKey cierreNocturnoKey = new JobKey("cierreNocturnoJob", "asistencia");
+            if (!scheduler.checkExists(cierreNocturnoKey)) {
+                JobDetail cierreNocturnoJob = JobBuilder.newJob(CierreJornadaNocturnaJob.class)
+                        .withIdentity(cierreNocturnoKey)
+                        .build();
 
-            Trigger aperturaTrigger = TriggerBuilder.newTrigger()
-                    .withIdentity("aperturaTrigger", "asistencia")
-                    .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(0, 1)
-                            .withMisfireHandlingInstructionFireAndProceed())
-                    .build();
+                Trigger cierreNocturnoTrigger = TriggerBuilder.newTrigger()
+                        .withIdentity("cierreNocturnoTrigger", "asistencia")
+                        .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(12, 0))
+                        .build();
 
-            scheduler.scheduleJob(aperturaJob, aperturaTrigger);
-            System.out.println("[Quartz] Job APERTURA programado: 00:01 AM (con política misfire FireAndProceed)");
+                scheduler.scheduleJob(cierreNocturnoJob, cierreNocturnoTrigger);
+                log.info("[Quartz] Job CIERRE NOCTURNO programado a las 12:00 PM.");
+            }
 
-            // =================================================================
-            // JOB 2: Cierre diario - 23:59 PM
-            // =================================================================
-            JobDetail cierreJob = JobBuilder.newJob(CierreJornadaJob.class)
-                    .withIdentity("cierreJob", "asistencia")
-                    .build();
+            // 4. JOB ACTUALIZAR FERIADOS (1 de enero, 00:30 AM)
+            JobKey feriadosKey = new JobKey("actualizarFeriadosJob", "mantenimiento");
+            if (!scheduler.checkExists(feriadosKey)) {
+                JobDetail feriadosJob = JobBuilder.newJob(ActualizarFeriadosJob.class)
+                        .withIdentity(feriadosKey)
+                        .build();
 
-            Trigger cierreTrigger = TriggerBuilder.newTrigger()
-                    .withIdentity("cierreTrigger", "asistencia")
-                    .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(23, 59)
-                            .withMisfireHandlingInstructionFireAndProceed())
-                    .build();
+                Trigger feriadosTrigger = TriggerBuilder.newTrigger()
+                        .withIdentity("feriadosTrigger", "mantenimiento")
+                        .withSchedule(CronScheduleBuilder.cronSchedule("0 30 0 1 1 ? *"))
+                        .build();
 
-            scheduler.scheduleJob(cierreJob, cierreTrigger);
-            System.out.println("[Quartz] Job CIERRE programado: 23:59 PM (con política misfire FireAndProceed)");
+                scheduler.scheduleJob(feriadosJob, feriadosTrigger);
+                log.info("[Quartz] Job ACTUALIZAR FERIADOS programado para el 1 de enero a las 00:30 AM.");
+            }
 
-            // =================================================================
-            // JOB 3: Cierre de jornadas nocturnas - 12:00 PM
-            // =================================================================
-            JobDetail cierreNocturnoJob = JobBuilder.newJob(CierreJornadaNocturnaJob.class)
-                    .withIdentity("cierreNocturnoJob", "asistencia")
-                    .build();
+            // Iniciar scheduler si no ha sido iniciado
+            if (!scheduler.isStarted()) {
+                scheduler.start();
+                log.info("[Quartz] ===== Scheduler iniciado correctamente =====");
+            }
 
-            Trigger cierreNocturnoTrigger = TriggerBuilder.newTrigger()
-                    .withIdentity("cierreNocturnoTrigger", "asistencia")
-                    .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(12, 0)
-                            .withMisfireHandlingInstructionFireAndProceed())
-                    .build();
-
-            scheduler.scheduleJob(cierreNocturnoJob, cierreNocturnoTrigger);
-            System.out.println("[Quartz] Job CIERRE NOCTURNO programado: 12:00 PM (con política misfire FireAndProceed)");
-
-            // =================================================================
-            // Iniciar Scheduler
-            // =================================================================
-            scheduler.start();
-            System.out.println("[Quartz] ===== Scheduler iniciado correctamente (5 hilos activos) =====");
-
-        } catch (SchedulerException e) {
-            System.err.println("[Quartz] ERROR CRÍTICO al iniciar Scheduler: " + e.getMessage());
-            e.printStackTrace();
+        } catch (Exception ex) {
+            log.error("[Quartz] Error al iniciar Quartz Scheduler", ex);
         }
     }
 
     @Override
-    public synchronized void contextDestroyed(ServletContextEvent sce) {
+    public void contextDestroyed(ServletContextEvent sce) {
         try {
+            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
             if (scheduler != null && !scheduler.isShutdown()) {
-                System.out.println("[Quartz] Apagando Quartz Scheduler...");
-                scheduler.shutdown(false); // false = apagado ordenado sin bloquear reinicios del servidor
-                scheduler = null;
-                System.out.println("[Quartz] Scheduler apagado correctamente.");
+                log.info("[Quartz] Apagando Quartz Scheduler...");
+                scheduler.shutdown();
+                log.info("[Quartz] Scheduler apagado correctamente.");
             }
-        } catch (SchedulerException e) {
-            System.err.println("[Quartz] Error al apagar Scheduler: " + e.getMessage());
-            e.printStackTrace();
+        } catch (Exception ex) {
+            log.error("[Quartz] Error al apagar Quartz Scheduler", ex);
         }
     }
 }

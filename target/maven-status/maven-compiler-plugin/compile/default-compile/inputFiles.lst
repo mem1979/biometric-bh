@@ -77,6 +77,7 @@ C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\anot
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\anotaciones\Mayuscula.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\anotaciones\MiLabel.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\DetalleIncidenciaPresentismo.java
+C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\DiagnosticoInterpretacionSecuencia.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\Dni.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\Feriados.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\auxiliares\HorasNetasJornada.java
@@ -187,6 +188,7 @@ C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\serv
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\LectorArchivoService.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\LicenciaRecalculacionService.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\LiquidacionJornadaService.java
+C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\ObservadorSecuenciaFichadasService.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\PresentismoService.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\RedondeoHorasService.java
 C:\Users\mem19\Documents\STARH\biometric-bh\src\main\java\com\sta\biometric\servicios\ResumenAsistenciaHoyService.java
